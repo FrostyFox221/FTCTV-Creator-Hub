@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startAutoSync } from "./lib/telegram-sync";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,8 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Start automatic Telegram sync every 5 minutes
+  startAutoSync(5);
+  logger.info("Telegram auto-sync started (every 5 minutes)");
 });

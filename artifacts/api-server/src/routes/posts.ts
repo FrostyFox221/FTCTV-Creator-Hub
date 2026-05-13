@@ -17,10 +17,11 @@ function verifyAdmin(req: any): boolean {
 
 router.get("/posts", async (req, res) => {
   try {
+    const rawSearch = req.query.search as string | undefined;
     const query = GetPostsQueryParams.parse({
       page: req.query.page ? Number(req.query.page) : 1,
       limit: req.query.limit ? Number(req.query.limit) : 20,
-      search: req.query.search || null,
+      search: rawSearch && rawSearch !== "null" ? rawSearch : null,
     });
 
     const page = query.page ?? 1;
