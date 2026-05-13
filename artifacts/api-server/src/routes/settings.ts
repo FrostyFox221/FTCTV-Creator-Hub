@@ -20,7 +20,7 @@ async function ensureSettings() {
   if (existing.length === 0) {
     const [row] = await db.insert(settingsTable).values({
       siteName: "FTCTV.Online",
-      telegramChannel: "",
+      telegramChannel: "@ftctv.itv",
       telegramBotToken: "8797996336:AAHV9B4xUfQczTKF9TctQJ5lvwOUeFu4r0M",
       footerText: "FTC CREATE PRODUCTION 2026. Все права защищены.",
       contactEmail: "ftcmedia@mail.com",

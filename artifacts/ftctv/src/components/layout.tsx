@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/hooks/use-theme";
-import { Moon, Sun, MonitorPlay, Radio } from "lucide-react";
+import { Moon, Sun, Radio, Lock } from "lucide-react";
 import logoPath from "/logo.png";
 import { useGetMaintenanceStatus } from "@workspace/api-client-react";
 import Maintenance from "./maintenance";
@@ -20,22 +20,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img 
-              src={logoPath} 
-              alt="FTCTV" 
-              className="h-10 dark:brightness-200 dark:contrast-200 transition-all" 
+            <img
+              src={logoPath}
+              alt="FTCTV"
+              className="h-8 w-auto invert dark:invert-0 dark:brightness-150 transition-all"
             />
           </Link>
-          
+
           <nav className="hidden md:flex items-center gap-6">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className={`text-sm font-semibold tracking-wide uppercase transition-colors hover:text-primary ${location === '/' ? 'text-primary' : 'text-foreground/80'}`}
             >
               Главная
             </Link>
-            <Link 
-              href="/live" 
+            <Link
+              href="/live"
               className={`flex items-center gap-2 text-sm font-semibold tracking-wide uppercase transition-colors hover:text-primary ${location === '/live' ? 'text-primary' : 'text-foreground/80'}`}
             >
               <Radio className="w-4 h-4" />
@@ -43,19 +43,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-4">
-            <button 
+          <div className="flex items-center gap-3">
+            <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-secondary/50 hover:bg-secondary transition-colors"
               aria-label="Toggle theme"
+              data-testid="button-toggle-theme"
             >
-              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <Link 
-              href="/live" 
-              className="md:hidden flex items-center justify-center p-2 rounded-full bg-primary text-primary-foreground"
+            <Link
+              href="/admin"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border transition-colors ${location === '/admin' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}
+              data-testid="link-admin"
+              title="Панель администратора"
             >
-              <Radio className="w-5 h-5" />
+              <Lock className="w-3 h-3" />
+              Админ
             </Link>
           </div>
         </div>
