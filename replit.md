@@ -1,44 +1,65 @@
-# [Project name]
+# FTCTV.Online
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Новостной сайт FTCTV.Online с синхронизацией из Telegram, прямыми эфирами, панелью администратора и автоматической тёмной темой.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — запустить API сервер (порт 8080)
+- `pnpm --filter @workspace/ftctv run dev` — запустить фронтенд (порт 19651)
+- `pnpm run typecheck` — полная проверка типов
+- `pnpm run build` — сборка всех пакетов
+- `pnpm --filter @workspace/api-spec run codegen` — перегенерировать API хуки и Zod схемы
+- `pnpm --filter @workspace/db run push` — применить изменения схемы БД
+- Required env: `DATABASE_URL` — строка подключения к Postgres
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Frontend: React + Vite, Tailwind CSS, Framer Motion, wouter
+- Font: Unbounded (Google Fonts)
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- API codegen: Orval (из OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — OpenAPI спецификация (источник истины)
+- `lib/db/src/schema/` — схема базы данных (posts, settings, livestream)
+- `artifacts/api-server/src/routes/` — API маршруты
+- `artifacts/ftctv/src/` — фронтенд React
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Telegram Bot Token зашит в бэкенд (`8797996336:AAHV9B4xUfQczTKF9TctQJ5lvwOUeFu4r0M`), настраивается через Admin панель
+- Пароль администратора: `Ftc!_9AdMin#2026_xZq` — хранится на сервере, токен возвращается клиенту и сохраняется в localStorage
+- Автосинхронизация с Telegram: каждые 5 минут через getUpdates API
+- Тёмная тема автоматически 22:00–06:00 по локальному времени пользователя
+- Техобслуживание: каждое 18-е число месяца с 00:00 до 06:00 UTC+7
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Главная страница с новостной лентой, поиском и пагинацией
+- Страница поста с видеоплеером, галереей и полным текстом
+- Страница прямого эфира (YouTube/VK/Telegram)
+- Панель администратора: посты, эфир, Telegram-синхронизация, настройки
+- Заглушка на техобслуживание с таймером обратного отсчёта
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Шрифт: Unbounded
+- Цвета: белый фон, тёмно-серые и фиолетовые элементы
+- Без эмодзи в UI и в постах
+- Тема поста выделяется жирным
+- Логотип: /logo.png, высота ~44px в хедере
+- Футер: "FTC CREATE PRODUCTION 2026. Все права защищены." + ftcmedia@mail.com
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- После изменения openapi.yaml обязательно запустить codegen перед использованием новых типов
+- Telegram getUpdates работает только для сообщений, отправленных боту напрямую или в каналах, где бот является администратором
+- Заглушка техобслуживания рассчитывается на сервере в UTC+7 (не зависит от клиента)
 
 ## Pointers
 

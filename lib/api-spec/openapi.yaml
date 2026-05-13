@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: FTCTV.Online API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: posts
+    description: News posts
+  - name: telegram
+    description: Telegram sync
+  - name: admin
+    description: Admin operations
+  - name: livestream
+    description: Live stream management
+  - name: settings
+    description: Site settings
+  - name: maintenance
+    description: Maintenance mode
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +35,463 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /posts:
+    get:
+      operationId: getPosts
+      tags: [posts]
+      summary: Get all news posts
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostsPage"
+    post:
+      operationId: createPost
+      tags: [posts]
+      summary: Create a post (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInput"
+      responses:
+        "201":
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+
+  /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get a single post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Post details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          description: Not found
+    put:
+      operationId: updatePost
+      tags: [posts]
+      summary: Update a post (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInput"
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete a post (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+
+  /telegram/sync:
+    post:
+      operationId: syncTelegram
+      tags: [telegram]
+      summary: Sync posts from Telegram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramSyncInput"
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramSyncResult"
+        "401":
+          description: Unauthorized
+
+  /telegram/status:
+    get:
+      operationId: getTelegramStatus
+      tags: [telegram]
+      summary: Get Telegram sync status
+      responses:
+        "200":
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramStatus"
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResult"
+        "401":
+          description: Invalid credentials
+
+  /livestream:
+    get:
+      operationId: getLivestream
+      tags: [livestream]
+      summary: Get current livestream configuration
+      responses:
+        "200":
+          description: Livestream config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Livestream"
+    put:
+      operationId: updateLivestream
+      tags: [livestream]
+      summary: Update livestream (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LivestreamInput"
+      responses:
+        "200":
+          description: Updated livestream
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Livestream"
+        "401":
+          description: Unauthorized
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get site settings
+      responses:
+        "200":
+          description: Site settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update site settings (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteSettingsInput"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettings"
+        "401":
+          description: Unauthorized
+
+  /maintenance:
+    get:
+      operationId: getMaintenanceStatus
+      tags: [maintenance]
+      summary: Get current maintenance status
+      responses:
+        "200":
+          description: Maintenance status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceStatus"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    Post:
+      type: object
+      required: [id, title, content, createdAt, source]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        videoUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+        source:
+          type: string
+          enum: [telegram, admin]
+        telegramMessageId:
+          type: ["integer", "null"]
+        published:
+          type: boolean
+
+    PostsPage:
+      type: object
+      required: [posts, total, page, limit]
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    PostInput:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        videoUrl:
+          type: ["string", "null"]
+        published:
+          type: boolean
+
+    Livestream:
+      type: object
+      required: [id, isLive]
+      properties:
+        id:
+          type: integer
+        isLive:
+          type: boolean
+        streamUrl:
+          type: ["string", "null"]
+        streamType:
+          type: ["string", "null"]
+          enum: [youtube, vk, telegram, null]
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+
+    LivestreamInput:
+      type: object
+      required: [isLive]
+      properties:
+        isLive:
+          type: boolean
+        streamUrl:
+          type: ["string", "null"]
+        streamType:
+          type: ["string", "null"]
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+
+    SiteSettings:
+      type: object
+      required: [id, siteName, logoUrl, telegramChannel]
+      properties:
+        id:
+          type: integer
+        siteName:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+        telegramChannel:
+          type: string
+        telegramBotToken:
+          type: ["string", "null"]
+        footerText:
+          type: string
+        contactEmail:
+          type: string
+        autoSyncEnabled:
+          type: boolean
+        syncIntervalMinutes:
+          type: integer
+
+    SiteSettingsInput:
+      type: object
+      properties:
+        siteName:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+        telegramChannel:
+          type: string
+        telegramBotToken:
+          type: ["string", "null"]
+        footerText:
+          type: string
+        contactEmail:
+          type: string
+        autoSyncEnabled:
+          type: boolean
+        syncIntervalMinutes:
+          type: integer
+
+    TelegramSyncInput:
+      type: object
+      required: [adminToken]
+      properties:
+        adminToken:
+          type: string
+        limit:
+          type: integer
+          default: 50
+
+    TelegramSyncResult:
+      type: object
+      required: [synced, skipped, errors]
+      properties:
+        synced:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: integer
+        message:
+          type: string
+
+    TelegramStatus:
+      type: object
+      required: [lastSync, totalPosts]
+      properties:
+        lastSync:
+          type: ["string", "null"]
+        totalPosts:
+          type: integer
+        telegramChannel:
+          type: string
+        autoSyncEnabled:
+          type: boolean
+
+    AdminLoginInput:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    AdminAuthResult:
+      type: object
+      required: [success, token]
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+
+    MaintenanceStatus:
+      type: object
+      required: [isActive, endsAt]
+      properties:
+        isActive:
+          type: boolean
+        endsAt:
+          type: ["string", "null"]
+        message:
+          type: string
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

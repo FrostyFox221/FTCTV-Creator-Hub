@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "FTCTV.Online"
+version = "1.0.0"
+id = "artifacts/ftctv"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19651
+
+[services.development]
+run = "pnpm --filter @workspace/ftctv run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ftctv", "run", "build" ]
+publicDir = "artifacts/ftctv/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19651"
+BASE_PATH = "/"
