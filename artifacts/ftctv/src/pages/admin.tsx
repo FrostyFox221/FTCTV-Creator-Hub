@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus } from "@workspace/api-client-react";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { Button } from "@/components/ui/button";
@@ -292,16 +292,17 @@ function LiveTab() {
     streamType: "youtube"
   });
 
-  // Init form
-  if (live && form.title === "" && !form.isLive && live.title !== form.title) {
-    setForm({
-      isLive: live.isLive,
-      title: live.title || "",
-      description: live.description || "",
-      streamUrl: live.streamUrl || "",
-      streamType: live.streamType || "youtube"
-    });
-  }
+  useEffect(() => {
+    if (live) {
+      setForm({
+        isLive: live.isLive,
+        title: live.title || "",
+        description: live.description || "",
+        streamUrl: live.streamUrl || "",
+        streamType: live.streamType || "youtube"
+      });
+    }
+  }, [live]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -442,13 +443,15 @@ function SettingsTab() {
     telegramChannel: ""
   });
 
-  if (settings && form.siteName === "" && settings.siteName !== form.siteName) {
-    setForm({
-      siteName: settings.siteName || "",
-      contactEmail: settings.contactEmail || "",
-      telegramChannel: settings.telegramChannel || ""
-    });
-  }
+  useEffect(() => {
+    if (settings) {
+      setForm({
+        siteName: settings.siteName || "",
+        contactEmail: settings.contactEmail || "",
+        telegramChannel: settings.telegramChannel || ""
+      });
+    }
+  }, [settings]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
