@@ -1,47 +1,96 @@
+import { useEffect, useState } from "react";
+
 export function Signal() {
+  const [scale, setScale] = useState([1, 0.5, 0]);
+
+  useEffect(() => {
+    let frame: number;
+    let start: number | null = null;
+    const duration = 3000;
+
+    const tick = (ts: number) => {
+      if (!start) start = ts;
+      const t = ((ts - start) % duration) / duration;
+      setScale([
+        0.4 + 0.6 * t,
+        0.4 + 0.6 * ((t + 0.33) % 1),
+        0.4 + 0.6 * ((t + 0.66) % 1),
+      ]);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   return (
     <div
       style={{ fontFamily: "'Unbounded', sans-serif" }}
-      className="w-full aspect-video bg-[#0a0a0a] flex flex-col items-center justify-center relative overflow-hidden"
+      className="w-full aspect-video relative overflow-hidden flex items-center justify-center"
     >
       <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet" />
 
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#7c3aed] to-transparent opacity-80" />
+      {/* Background */}
+      <div className="absolute inset-0" style={{
+        background: "radial-gradient(ellipse 80% 80% at 50% 50%, #5b21b6 0%, #3b0764 50%, #0d0020 100%)"
+      }} />
 
-      <div className="absolute inset-0 opacity-[0.03]"
+      {/* Ripple rings */}
+      {scale.map((s, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full border border-purple-400"
+          style={{
+            width: "80%",
+            paddingBottom: "80%",
+            transform: `translate(-50%, -50%) scale(${s})`,
+            left: "50%",
+            top: "50%",
+            opacity: 1 - s * 0.9,
+            transition: "none",
+          }}
+        />
+      ))}
+
+      {/* Vignette */}
+      <div className="absolute inset-0" style={{
+        background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 30%, rgba(5,0,20,0.75) 100%)"
+      }} />
+
+      {/* Content — horizontal split */}
+      <div
+        className="relative z-10 flex flex-row items-center gap-10 px-16 py-10 rounded-2xl"
         style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 3px)",
+          background: "rgba(255,255,255,0.07)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 8px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)",
+          minWidth: "65%",
         }}
-      />
-
-      <div className="relative z-10 flex flex-col items-center text-center gap-8 px-16 w-full max-w-4xl">
-        <div className="flex items-center gap-4">
-          <div className="w-3 h-3 rounded-full bg-[#7c3aed] animate-pulse" />
-          <span style={{ fontFamily: "'Unbounded', sans-serif" }} className="text-[#7c3aed] text-sm font-bold tracking-[0.3em] uppercase">Технический перерыв</span>
-          <div className="w-3 h-3 rounded-full bg-[#7c3aed] animate-pulse" />
+      >
+        {/* Left: logo */}
+        <div className="flex flex-col items-center shrink-0">
+          <div className="text-white font-black tracking-widest" style={{ fontSize: "clamp(2rem, 6vw, 4rem)" }}>
+            FTCTV
+          </div>
+          <div className="mt-2 rounded-full" style={{ width: "3rem", height: "2px", background: "rgba(167,139,250,0.6)" }} />
         </div>
 
-        <div className="text-white font-black text-8xl tracking-widest">FTCTV</div>
+        {/* Vertical divider */}
+        <div className="self-stretch rounded-full shrink-0" style={{ width: "1px", background: "rgba(255,255,255,0.15)" }} />
 
-        <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-        <div className="flex flex-col gap-3">
-          <p style={{ fontFamily: "'Unbounded', sans-serif" }} className="text-white/70 text-base font-normal tracking-wide uppercase">
-            На телеканале ведутся плановые профилактические работы
+        {/* Right: text */}
+        <div className="flex flex-col gap-2 text-left">
+          <p className="text-white/70 font-normal uppercase leading-relaxed"
+            style={{ fontSize: "clamp(0.5rem, 1.2vw, 0.85rem)", letterSpacing: "0.1em" }}>
+            На телеканале ведутся<br />плановые профилактические работы
           </p>
-          <p style={{ fontFamily: "'Unbounded', sans-serif" }} className="text-white text-4xl font-black tracking-widest">
-            Вещание возобновится в&nbsp;15:00
+          <p className="text-white font-bold uppercase"
+            style={{ fontSize: "clamp(0.65rem, 1.6vw, 1.1rem)", letterSpacing: "0.08em" }}>
+            Вещание возобновится в 15:00
           </p>
         </div>
-
-        <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-        <p style={{ fontFamily: "'Unbounded', sans-serif" }} className="text-white/25 text-xs tracking-[0.4em] uppercase">
-          FTC Create Production · ftcmedia@mail.com
-        </p>
       </div>
-
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#7c3aed] to-transparent opacity-80" />
     </div>
   );
 }
