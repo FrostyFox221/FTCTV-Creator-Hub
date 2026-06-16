@@ -2,7 +2,7 @@ export function Minimalizm() {
   return (
     <div
       style={{ fontFamily: "'Unbounded', sans-serif" }}
-      className="w-full h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden"
+      className="w-full aspect-video bg-black flex flex-col items-center justify-center relative overflow-hidden"
     >
       <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet" />
 
