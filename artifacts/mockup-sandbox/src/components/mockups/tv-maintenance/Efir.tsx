@@ -19,16 +19,6 @@ export function Efir() {
         transform: "translateY(-50%)",
       }} />
 
-      {/* Glass panel — compact square-ish */}
-      <div className="relative z-10 rounded-3xl" style={{
-        width: "55%",
-        height: "60%",
-        background: "rgba(255,255,255,0.06)",
-        backdropFilter: "blur(28px)",
-        WebkitBackdropFilter: "blur(28px)",
-        border: "1px solid rgba(167,139,250,0.2)",
-        boxShadow: "0 0 80px rgba(109,40,217,0.3), 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
-      }} />
     </div>
   );
 }

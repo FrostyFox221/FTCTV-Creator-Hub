@@ -28,16 +28,6 @@ export function Minimalizm() {
         background: "radial-gradient(ellipse 110% 110% at 50% 50%, transparent 40%, rgba(10,0,30,0.7) 100%)",
       }} />
 
-      {/* Glass panel */}
-      <div className="relative z-10 rounded-2xl" style={{
-        width: "60%",
-        height: "55%",
-        background: "rgba(255,255,255,0.08)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255,255,255,0.13)",
-        boxShadow: "0 8px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
-      }} />
     </div>
   );
 }
