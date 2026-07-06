@@ -26,13 +26,13 @@ router.get("/articles/:id", async (req, res) => {
   res.json(item);
 });
 
-router.post("/articles", requireAdmin, async (req, res) => {
+router.post("/articles", async (req, res) => {
   const parsed = insertArticleSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid input" });
     return;
   }
-  const [item] = await db.insert(articlesTable).values(parsed.data).returning();
+  const [item] = await db.insert(articlesTable).values({ ...parsed.data, published: false }).returning();
   res.status(201).json(item);
 });
 

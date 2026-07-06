@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus } from "@workspace/api-client-react";
+import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus, useGetSchedule } from "@workspace/api-client-react";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock } from "lucide-react";
+import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar } from "lucide-react";
 import logoPath from "/logo.png";
 
 export default function Admin() {
@@ -126,6 +126,7 @@ export default function Admin() {
         <TabsList className="mb-8 w-full justify-start overflow-x-auto bg-transparent h-auto p-0 gap-2 border-b rounded-none pb-px no-scrollbar">
           {[
             { id: "posts", label: "Новости", icon: FileText },
+            { id: "schedule", label: "Сетка вещания", icon: Calendar },
             { id: "live", label: "Прямой эфир", icon: Radio },
             { id: "telegram", label: "Telegram", icon: MessageCircle },
             { id: "settings", label: "Настройки", icon: Settings }
@@ -143,6 +144,7 @@ export default function Admin() {
 
         <div className="bg-card border rounded-b-2xl rounded-tr-2xl shadow-sm min-h-[400px]">
           <TabsContent value="posts" className="m-0 p-0"><PostsTab /></TabsContent>
+          <TabsContent value="schedule" className="m-0 p-0"><ScheduleTab /></TabsContent>
           <TabsContent value="live" className="m-0 p-0"><LiveTab /></TabsContent>
           <TabsContent value="telegram" className="m-0 p-0"><TelegramTab /></TabsContent>
           <TabsContent value="settings" className="m-0 p-0"><SettingsTab /></TabsContent>
@@ -274,6 +276,148 @@ function PostsTab() {
             )}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+const DAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+
+function ScheduleTab() {
+  const { data: items, refetch } = useGetSchedule({ query: { queryKey: ["admin_schedule"] } });
+  const { fetchWithToken } = useAdminFetch();
+  const { toast } = useToast();
+
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ dayOfWeek: 0, timeSlot: "", title: "", genre: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.timeSlot || !form.title) return;
+    setSubmitting(true);
+    try {
+      await fetchWithToken("/api/schedule", {
+        method: "POST",
+        body: JSON.stringify({ ...form, genre: form.genre || undefined }),
+      });
+      toast({ title: "Программа добавлена" });
+      setForm({ dayOfWeek: 0, timeSlot: "", title: "", genre: "" });
+      setShowForm(false);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Удалить программу?")) return;
+    try {
+      await fetchWithToken(`/api/schedule/${id}`, { method: "DELETE" });
+      toast({ title: "Программа удалена" });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const byDay = DAYS.map((name, idx) => ({
+    name,
+    items: (items ?? []).filter((i) => i.dayOfWeek === idx),
+  }));
+
+  return (
+    <div className="flex flex-col">
+      <div className="p-6 border-b flex justify-between items-center bg-secondary/30">
+        <h2 className="text-xl font-bold uppercase tracking-tight">Сетка вещания</h2>
+        <Button onClick={() => setShowForm(!showForm)} className="uppercase font-bold tracking-wider text-xs rounded-full gap-1">
+          {showForm ? "Отмена" : <><Plus className="w-4 h-4" /> Добавить программу</>}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleCreate} className="p-6 border-b bg-card flex flex-col gap-4 animate-in slide-in-from-top-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">День недели</label>
+              <select
+                value={form.dayOfWeek}
+                onChange={(e) => setForm({ ...form, dayOfWeek: Number(e.target.value) })}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Время начала</label>
+              <Input
+                type="time"
+                value={form.timeSlot}
+                onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Название программы</label>
+              <Input
+                placeholder="Например: Утренние новости"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Жанр (необязательно)</label>
+              <Input
+                placeholder="Например: Информационная"
+                value={form.genre}
+                onChange={(e) => setForm({ ...form, genre: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={submitting} className="uppercase font-bold tracking-wider">
+              {submitting ? "Сохранение..." : "Добавить"}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="p-6 grid gap-4 md:grid-cols-2">
+        {byDay.map(({ name, items }) => (
+          <div key={name} className="rounded-xl border border-border bg-background overflow-hidden">
+            <div className="px-4 py-3 bg-secondary/40 border-b">
+              <h3 className="font-black text-xs uppercase tracking-widest">{name}</h3>
+            </div>
+            {items.length === 0 ? (
+              <p className="text-xs text-muted-foreground p-4">Нет программ</p>
+            ) : (
+              <div className="divide-y">
+                {items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between px-4 py-3 group hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-primary min-w-[40px]">{item.timeSlot}</span>
+                      <div>
+                        <p className="text-sm font-semibold leading-tight">{item.title}</p>
+                        {item.genre && <p className="text-xs text-muted-foreground">{item.genre}</p>}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(item.id)}
+                      className="h-7 w-7 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
