@@ -23,7 +23,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (maintenance?.isActive) {
+  const isAdminLoggedIn = !!localStorage.getItem("ftctv_admin_token");
+
+  if (maintenance?.isActive && !isAdminLoggedIn) {
     return <Maintenance endsAt={maintenance.endsAt} message={maintenance.message} />;
   }
 

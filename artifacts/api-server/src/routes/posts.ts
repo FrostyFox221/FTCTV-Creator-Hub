@@ -50,7 +50,7 @@ router.get("/posts", async (req, res) => {
     res.json({
       posts: posts.map(p => ({
         ...p,
-        images: p.images ?? [],
+        images: Array.isArray(p.images) ? p.images : (typeof p.images === "string" ? JSON.parse(p.images) : []),
         createdAt: p.createdAt.toISOString(),
         updatedAt: p.updatedAt?.toISOString() ?? null,
       })),

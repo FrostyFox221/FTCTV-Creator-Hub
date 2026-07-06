@@ -154,13 +154,61 @@ export default function Admin() {
   );
 }
 
+function ImageUrlsInput({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const [input, setInput] = useState("");
+  const add = () => {
+    const url = input.trim();
+    if (url && !value.includes(url)) { onChange([...value, url]); }
+    setInput("");
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <Input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="https://example.com/photo.jpg"
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          className="flex-1"
+        />
+        <Button type="button" variant="outline" onClick={add} className="shrink-0 text-xs uppercase font-bold tracking-wider">
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-1">
+          {value.map((url, i) => (
+            <div key={i} className="relative group">
+              <img
+                src={url}
+                alt=""
+                className="h-16 w-24 object-cover rounded-lg border border-border"
+                onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+              />
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((_, j) => j !== i))}
+                className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PostsTab() {
   const { data: posts, refetch } = useGetPosts({ page: 1, limit: 50 }, { query: { queryKey: ["admin_posts"] } });
   const { fetchWithToken } = useAdminFetch();
   const { toast } = useToast();
   const [showNewForm, setShowNewForm] = useState(false);
-  const [newPost, setNewPost] = useState({ title: "", content: "" });
+  const [newPost, setNewPost] = useState({ title: "", content: "", images: [] as string[] });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingImages, setEditingImages] = useState<{ id: number; images: string[] } | null>(null);
+  const [savingImages, setSavingImages] = useState(false);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить новость? Действие необратимо.")) return;
@@ -176,21 +224,38 @@ function PostsTab() {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.title || !newPost.content) return;
-    
     setIsSubmitting(true);
     try {
       await fetchWithToken('/api/posts', {
         method: "POST",
-        body: JSON.stringify({ ...newPost, published: true })
+        body: JSON.stringify({ title: newPost.title, content: newPost.content, images: newPost.images, published: true })
       });
       toast({ title: "Новость опубликована" });
-      setNewPost({ title: "", content: "" });
+      setNewPost({ title: "", content: "", images: [] });
       setShowNewForm(false);
       refetch();
     } catch (e: any) {
       toast({ title: "Ошибка", description: e.message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveImages = async () => {
+    if (!editingImages) return;
+    setSavingImages(true);
+    try {
+      await fetchWithToken(`/api/posts/${editingImages.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ images: editingImages.images })
+      });
+      toast({ title: "Фотографии обновлены" });
+      setEditingImages(null);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingImages(false);
     }
   };
 
@@ -207,9 +272,9 @@ function PostsTab() {
         <form onSubmit={handleCreatePost} className="p-6 border-b bg-card flex flex-col gap-4 animate-in slide-in-from-top-4">
           <div className="flex flex-col gap-2">
             <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок</label>
-            <Input 
-              value={newPost.title} 
-              onChange={e => setNewPost({...newPost, title: e.target.value})} 
+            <Input
+              value={newPost.title}
+              onChange={e => setNewPost({...newPost, title: e.target.value})}
               placeholder="Введите заголовок"
               className="text-lg font-medium"
               required
@@ -217,14 +282,18 @@ function PostsTab() {
           </div>
           <div className="flex flex-col gap-2">
             <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Текст новости</label>
-            <Textarea 
-              value={newPost.content} 
-              onChange={e => setNewPost({...newPost, content: e.target.value})} 
-              placeholder="Содержание новости (поддерживается Markdown)"
+            <Textarea
+              value={newPost.content}
+              onChange={e => setNewPost({...newPost, content: e.target.value})}
+              placeholder="Содержание новости"
               rows={6}
               required
               className="resize-y"
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Фотографии (URL, Enter или +)</label>
+            <ImageUrlsInput value={newPost.images} onChange={imgs => setNewPost({...newPost, images: imgs})} />
           </div>
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting} className="uppercase font-bold tracking-wider">
@@ -234,33 +303,65 @@ function PostsTab() {
         </form>
       )}
 
+      {editingImages && (
+        <div className="p-6 border-b bg-primary/5 border-primary/20 flex flex-col gap-4 animate-in slide-in-from-top-4">
+          <div className="flex items-center justify-between">
+            <label className="font-bold uppercase text-xs text-primary tracking-wider">Редактирование фото — пост #{editingImages.id}</label>
+            <button type="button" onClick={() => setEditingImages(null)} className="text-muted-foreground hover:text-foreground text-sm">Закрыть</button>
+          </div>
+          <ImageUrlsInput value={editingImages.images} onChange={imgs => setEditingImages({...editingImages, images: imgs})} />
+          <Button onClick={handleSaveImages} disabled={savingImages} className="self-start uppercase font-bold tracking-wider text-xs rounded-full">
+            {savingImages ? "Сохранение..." : "Сохранить фото"}
+          </Button>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] font-bold tracking-widest border-b">
             <tr>
               <th className="p-4 pl-6 w-16">ID</th>
+              <th className="p-4 w-16">Фото</th>
               <th className="p-4">Заголовок</th>
-              <th className="p-4 w-32">Источник</th>
-              <th className="p-4 w-40">Дата</th>
-              <th className="p-4 pr-6 w-24 text-right">Действия</th>
+              <th className="p-4 w-28">Источник</th>
+              <th className="p-4 w-36">Дата</th>
+              <th className="p-4 pr-6 w-28 text-right">Действия</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {posts?.posts.map(p => (
               <tr key={p.id} className="hover:bg-muted/30 transition-colors group">
                 <td className="p-4 pl-6 font-mono text-xs text-muted-foreground">{p.id}</td>
-                <td className="p-4 font-semibold max-w-xs truncate pr-8">{p.title}</td>
+                <td className="p-4">
+                  {p.images && p.images.length > 0 ? (
+                    <img src={p.images[0]} alt="" className="h-9 w-14 object-cover rounded border border-border" onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+                  ) : (
+                    <div className="h-9 w-14 rounded border border-dashed border-border flex items-center justify-center">
+                      <span className="text-[9px] text-muted-foreground uppercase tracking-wide">нет</span>
+                    </div>
+                  )}
+                </td>
+                <td className="p-4 font-semibold max-w-xs truncate pr-4">{p.title}</td>
                 <td className="p-4">
                   <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${p.source === 'telegram' ? 'bg-[#0088cc]/10 text-[#0088cc]' : 'bg-primary/10 text-primary'}`}>
                     {p.source}
                   </span>
                 </td>
                 <td className="p-4 text-xs text-muted-foreground">{formatDate(p.createdAt)}</td>
-                <td className="p-4 pr-6 text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleDelete(p.id)} 
+                <td className="p-4 pr-6 text-right flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditingImages(editingImages?.id === p.id ? null : { id: p.id, images: p.images ?? [] })}
+                    className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full"
+                    title="Редактировать фото"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(p.id)}
                     className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-full"
                     title="Удалить"
                   >
@@ -271,7 +372,7 @@ function PostsTab() {
             ))}
             {posts?.posts.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-10 text-center text-muted-foreground">Нет постов</td>
+                <td colSpan={6} className="p-10 text-center text-muted-foreground">Нет постов</td>
               </tr>
             )}
           </tbody>
