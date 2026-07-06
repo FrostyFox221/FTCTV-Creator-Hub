@@ -35,3 +35,5 @@ export * from "./siteSettingsInput";
 export * from "./telegramStatus";
 export * from "./telegramSyncInput";
 export * from "./telegramSyncResult";
+export * from "./uploadUrlRequest";
+export * from "./uploadUrlResponse";

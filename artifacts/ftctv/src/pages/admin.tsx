@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus, useGetSchedule } from "@workspace/api-client-react";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar } from "lucide-react";
+import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload } from "lucide-react";
+import { useUpload } from "@workspace/object-storage-web";
 import logoPath from "/logo.png";
 
 export default function Admin() {
@@ -155,28 +156,53 @@ export default function Admin() {
 }
 
 function ImageUrlsInput({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
-  const [input, setInput] = useState("");
-  const add = () => {
-    const url = input.trim();
-    if (url && !value.includes(url)) { onChange([...value, url]); }
-    setInput("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const { uploadFile, isUploading, progress } = useUpload({
+    onError: (e) => toast({ title: "Ошибка загрузки", description: e.message, variant: "destructive" }),
+  });
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      const res = await uploadFile(file);
+      if (res) {
+        const serveUrl = `/api/storage${res.objectPath}`;
+        onChange([...value, serveUrl]);
+      }
+    }
+    if (fileRef.current) fileRef.current.value = "";
   };
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <Input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="https://example.com/photo.jpg"
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-          className="flex-1"
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={e => handleFiles(e.target.files)}
         />
-        <Button type="button" variant="outline" onClick={add} className="shrink-0 text-xs uppercase font-bold tracking-wider">
-          <Plus className="w-4 h-4" />
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => fileRef.current?.click()}
+          disabled={isUploading}
+          className="gap-2 text-xs uppercase font-bold tracking-wider"
+        >
+          <Upload className="w-4 h-4" />
+          {isUploading ? `Загрузка ${progress}%` : "Загрузить фото"}
         </Button>
+        {isUploading && (
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
+        )}
       </div>
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-1">
+        <div className="flex flex-wrap gap-2">
           {value.map((url, i) => (
             <div key={i} className="relative group">
               <img

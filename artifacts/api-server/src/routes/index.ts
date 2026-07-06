@@ -9,6 +9,7 @@ import maintenanceRouter from "./maintenance";
 import scheduleRouter from "./schedule";
 import articlesRouter from "./articles";
 import forumRouter from "./forum";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(maintenanceRouter);
 router.use(scheduleRouter);
 router.use(articlesRouter);
 router.use(forumRouter);
+router.use(storageRouter);
 
 export default router;
