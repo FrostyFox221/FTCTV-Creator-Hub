@@ -45,6 +45,11 @@ router.get("/settings", async (req, res) => {
       contactEmail: cfg.contactEmail,
       autoSyncEnabled: cfg.autoSyncEnabled,
       syncIntervalMinutes: cfg.syncIntervalMinutes,
+      bannerEnabled: cfg.bannerEnabled,
+      bannerTitle: cfg.bannerTitle ?? null,
+      bannerText: cfg.bannerText ?? null,
+      bannerImageUrl: cfg.bannerImageUrl ?? null,
+      bannerLink: cfg.bannerLink ?? null,
     });
   } catch (err) {
     req.log.error({ err }, "Settings get error");
@@ -71,6 +76,11 @@ router.put("/settings", async (req, res) => {
       contactEmail: updated.contactEmail,
       autoSyncEnabled: updated.autoSyncEnabled,
       syncIntervalMinutes: updated.syncIntervalMinutes,
+      bannerEnabled: updated.bannerEnabled,
+      bannerTitle: updated.bannerTitle ?? null,
+      bannerText: updated.bannerText ?? null,
+      bannerImageUrl: updated.bannerImageUrl ?? null,
+      bannerLink: updated.bannerLink ?? null,
     });
   } catch (err) {
     req.log.error({ err }, "Settings update error");

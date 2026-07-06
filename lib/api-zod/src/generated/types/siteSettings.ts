@@ -18,4 +18,13 @@ export interface SiteSettings {
   contactEmail?: string;
   autoSyncEnabled?: boolean;
   syncIntervalMinutes?: number;
+  bannerEnabled?: boolean;
+  /** @nullable */
+  bannerTitle?: string | null;
+  /** @nullable */
+  bannerText?: string | null;
+  /** @nullable */
+  bannerImageUrl?: string | null;
+  /** @nullable */
+  bannerLink?: string | null;
 }

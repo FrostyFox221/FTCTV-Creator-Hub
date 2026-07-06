@@ -1,6 +1,6 @@
-import { useGetPosts, useGetLivestream } from "@workspace/api-client-react";
+import { useGetPosts, useGetLivestream, useGetSettings } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { Search, Radio, MonitorPlay, ChevronRight, ChevronLeft } from "lucide-react";
+import { Search, Radio, MonitorPlay, ChevronRight, ChevronLeft, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { formatDate } from "@/lib/format";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ export default function Home() {
     { query: { queryKey: ["posts", page, search] } }
   );
   const { data: livestream } = useGetLivestream({ query: { queryKey: ["livestream"] } });
+  const { data: settings } = useGetSettings({ query: { queryKey: ["settings"] } });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +27,23 @@ export default function Home() {
   const featuredPost = postsData?.posts?.[0];
   const gridPosts = featuredPost && page === 1 ? postsData.posts.slice(1) : postsData?.posts || [];
 
+  const banner = settings?.bannerEnabled ? settings : null;
+
   return (
     <div className="w-full">
+      {/* Banner Block */}
+      {banner && (
+        <section className="w-full border-b border-border bg-gradient-to-r from-primary/8 via-background to-primary/5">
+          {banner.bannerLink ? (
+            <a href={banner.bannerLink} target="_blank" rel="noopener noreferrer" className="block hover:opacity-90 transition-opacity">
+              <BannerContent banner={banner} />
+            </a>
+          ) : (
+            <BannerContent banner={banner} />
+          )}
+        </section>
+      )}
+
       {/* Hero Section if Live */}
       {livestream?.isLive && (
         <section className="w-full bg-[#110e1b] border-b border-primary/20 relative overflow-hidden">
@@ -218,6 +234,46 @@ export default function Home() {
         </section>
 
       </div>
+    </div>
+  );
+}
+
+type BannerSettings = {
+  bannerTitle?: string | null;
+  bannerText?: string | null;
+  bannerImageUrl?: string | null;
+  bannerLink?: string | null;
+};
+
+function BannerContent({ banner }: { banner: BannerSettings }) {
+  return (
+    <div className="container mx-auto px-4 py-4 flex items-center gap-5">
+      {banner.bannerImageUrl && (
+        <img
+          src={banner.bannerImageUrl}
+          alt={banner.bannerTitle || ""}
+          className="h-16 w-24 object-cover rounded-lg shrink-0 border border-border/40"
+          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+      )}
+      <div className="flex-1 min-w-0">
+        {banner.bannerTitle && (
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-0.5">Реклама</p>
+        )}
+        {banner.bannerTitle && (
+          <p className="font-black text-sm uppercase tracking-wide leading-tight truncate">{banner.bannerTitle}</p>
+        )}
+        {banner.bannerText && (
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{banner.bannerText}</p>
+        )}
+      </div>
+      {banner.bannerLink && (
+        <div className="shrink-0">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
+            Подробнее <ExternalLink className="w-3 h-3" />
+          </span>
+        </div>
+      )}
     </div>
   );
 }

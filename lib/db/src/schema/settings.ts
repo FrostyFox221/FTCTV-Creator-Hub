@@ -13,6 +13,11 @@ export const settingsTable = pgTable("site_settings", {
   autoSyncEnabled: boolean("auto_sync_enabled").notNull().default(true),
   syncIntervalMinutes: integer("sync_interval_minutes").notNull().default(5),
   lastSync: timestamp("last_sync"),
+  bannerEnabled: boolean("banner_enabled").notNull().default(false),
+  bannerTitle: text("banner_title"),
+  bannerText: text("banner_text"),
+  bannerImageUrl: text("banner_image_url"),
+  bannerLink: text("banner_link"),
 });
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).omit({ id: true });

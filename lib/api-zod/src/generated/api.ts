@@ -215,6 +215,11 @@ export const GetSettingsResponse = zod.object({
   contactEmail: zod.string().optional(),
   autoSyncEnabled: zod.boolean().optional(),
   syncIntervalMinutes: zod.number().optional(),
+  bannerEnabled: zod.boolean().optional(),
+  bannerTitle: zod.string().nullish(),
+  bannerText: zod.string().nullish(),
+  bannerImageUrl: zod.string().nullish(),
+  bannerLink: zod.string().nullish(),
 });
 
 /**
@@ -229,6 +234,11 @@ export const UpdateSettingsBody = zod.object({
   contactEmail: zod.string().optional(),
   autoSyncEnabled: zod.boolean().optional(),
   syncIntervalMinutes: zod.number().optional(),
+  bannerEnabled: zod.boolean().optional(),
+  bannerTitle: zod.string().nullish(),
+  bannerText: zod.string().nullish(),
+  bannerImageUrl: zod.string().nullish(),
+  bannerLink: zod.string().nullish(),
 });
 
 export const UpdateSettingsResponse = zod.object({
@@ -241,6 +251,11 @@ export const UpdateSettingsResponse = zod.object({
   contactEmail: zod.string().optional(),
   autoSyncEnabled: zod.boolean().optional(),
   syncIntervalMinutes: zod.number().optional(),
+  bannerEnabled: zod.boolean().optional(),
+  bannerTitle: zod.string().nullish(),
+  bannerText: zod.string().nullish(),
+  bannerImageUrl: zod.string().nullish(),
+  bannerLink: zod.string().nullish(),
 });
 
 /**

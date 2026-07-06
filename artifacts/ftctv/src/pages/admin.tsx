@@ -584,15 +584,32 @@ function SettingsTab() {
   const [form, setForm] = useState({
     siteName: "",
     contactEmail: "",
-    telegramChannel: ""
+    telegramChannel: "",
   });
+
+  const [banner, setBanner] = useState({
+    bannerEnabled: false,
+    bannerTitle: "",
+    bannerText: "",
+    bannerImageUrl: "",
+    bannerLink: "",
+  });
+
+  const [savingBanner, setSavingBanner] = useState(false);
 
   useEffect(() => {
     if (settings) {
       setForm({
         siteName: settings.siteName || "",
         contactEmail: settings.contactEmail || "",
-        telegramChannel: settings.telegramChannel || ""
+        telegramChannel: settings.telegramChannel || "",
+      });
+      setBanner({
+        bannerEnabled: settings.bannerEnabled ?? false,
+        bannerTitle: settings.bannerTitle || "",
+        bannerText: settings.bannerText || "",
+        bannerImageUrl: settings.bannerImageUrl || "",
+        bannerLink: settings.bannerLink || "",
       });
     }
   }, [settings]);
@@ -611,25 +628,102 @@ function SettingsTab() {
     }
   };
 
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingBanner(true);
+    try {
+      await fetchWithToken('/api/settings', {
+        method: "PUT",
+        body: JSON.stringify({
+          ...banner,
+          bannerTitle: banner.bannerTitle || null,
+          bannerText: banner.bannerText || null,
+          bannerImageUrl: banner.bannerImageUrl || null,
+          bannerLink: banner.bannerLink || null,
+        })
+      });
+      toast({ title: "Баннер сохранён" });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingBanner(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSave} className="p-6 md:p-8 flex flex-col gap-6 max-w-2xl">
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Название сайта</label>
-        <Input value={form.siteName} onChange={e => setForm({...form, siteName: e.target.value})} className="max-w-md" />
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Email редакции (для футера)</label>
-        <Input type="email" value={form.contactEmail} onChange={e => setForm({...form, contactEmail: e.target.value})} className="max-w-md" />
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Telegram Канал (ID или ссылка)</label>
-        <Input value={form.telegramChannel} onChange={e => setForm({...form, telegramChannel: e.target.value})} className="max-w-md" />
-      </div>
-      <div className="pt-4 border-t flex justify-start">
-        <Button type="submit" disabled={isLoading} className="uppercase font-bold tracking-wider rounded-full px-8">
-          {isLoading ? "Сохранение..." : "Сохранить настройки"}
-        </Button>
-      </div>
-    </form>
+    <div className="flex flex-col divide-y">
+      {/* Banner section */}
+      <form onSubmit={handleSaveBanner} className="p-6 md:p-8 flex flex-col gap-6 max-w-2xl">
+        <div>
+          <h3 className="font-black text-base uppercase tracking-tight mb-1">Рекламный баннер</h3>
+          <p className="text-xs text-muted-foreground">Показывается в самом верху главной страницы</p>
+        </div>
+
+        <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border ${banner.bannerEnabled ? 'bg-primary/5 border-primary/20' : 'bg-secondary/50 border-border'}`}>
+          <div>
+            <p className="font-bold uppercase tracking-tight text-sm">Показать баннер</p>
+            <p className="text-xs text-muted-foreground font-light mt-0.5">Включить отображение баннера на сайте</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={banner.bannerEnabled}
+              onChange={e => setBanner({ ...banner, bannerEnabled: e.target.checked })}
+            />
+            <div className="w-14 h-7 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+            <span className="ml-3 text-sm font-bold uppercase tracking-wider">{banner.bannerEnabled ? 'Включен' : 'Выключен'}</span>
+          </label>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок баннера</label>
+          <Input placeholder="Например: Реклама" value={banner.bannerTitle} onChange={e => setBanner({ ...banner, bannerTitle: e.target.value })} className="max-w-md" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Текст баннера</label>
+          <Textarea placeholder="Описание рекламного предложения" rows={3} value={banner.bannerText} onChange={e => setBanner({ ...banner, bannerText: e.target.value })} className="max-w-md resize-none" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">URL картинки</label>
+          <Input placeholder="https://..." value={banner.bannerImageUrl} onChange={e => setBanner({ ...banner, bannerImageUrl: e.target.value })} className="max-w-md" />
+          {banner.bannerImageUrl && (
+            <img src={banner.bannerImageUrl} alt="preview" className="mt-2 h-24 w-auto rounded-lg object-cover border border-border max-w-xs" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Ссылка при клике (необязательно)</label>
+          <Input placeholder="https://..." value={banner.bannerLink} onChange={e => setBanner({ ...banner, bannerLink: e.target.value })} className="max-w-md" />
+        </div>
+        <div className="pt-2 flex justify-start">
+          <Button type="submit" disabled={savingBanner} className="uppercase font-bold tracking-wider rounded-full px-8">
+            {savingBanner ? "Сохранение..." : "Сохранить баннер"}
+          </Button>
+        </div>
+      </form>
+
+      {/* Site settings section */}
+      <form onSubmit={handleSave} className="p-6 md:p-8 flex flex-col gap-6 max-w-2xl">
+        <h3 className="font-black text-base uppercase tracking-tight">Настройки сайта</h3>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Название сайта</label>
+          <Input value={form.siteName} onChange={e => setForm({...form, siteName: e.target.value})} className="max-w-md" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Email редакции (для футера)</label>
+          <Input type="email" value={form.contactEmail} onChange={e => setForm({...form, contactEmail: e.target.value})} className="max-w-md" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Telegram Канал (ID или ссылка)</label>
+          <Input value={form.telegramChannel} onChange={e => setForm({...form, telegramChannel: e.target.value})} className="max-w-md" />
+        </div>
+        <div className="pt-4 border-t flex justify-start">
+          <Button type="submit" disabled={isLoading} className="uppercase font-bold tracking-wider rounded-full px-8">
+            {isLoading ? "Сохранение..." : "Сохранить настройки"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

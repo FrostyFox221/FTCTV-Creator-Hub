@@ -706,6 +706,16 @@ components:
           type: boolean
         syncIntervalMinutes:
           type: integer
+        bannerEnabled:
+          type: boolean
+        bannerTitle:
+          type: ["string", "null"]
+        bannerText:
+          type: ["string", "null"]
+        bannerImageUrl:
+          type: ["string", "null"]
+        bannerLink:
+          type: ["string", "null"]
 
     SiteSettingsInput:
       type: object
@@ -726,6 +736,16 @@ components:
           type: boolean
         syncIntervalMinutes:
           type: integer
+        bannerEnabled:
+          type: boolean
+        bannerTitle:
+          type: ["string", "null"]
+        bannerText:
+          type: ["string", "null"]
+        bannerImageUrl:
+          type: ["string", "null"]
+        bannerLink:
+          type: ["string", "null"]
 
     TelegramSyncInput:
       type: object
