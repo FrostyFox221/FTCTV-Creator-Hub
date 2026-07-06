@@ -154,6 +154,89 @@ export interface MessageResponse {
   message: string;
 }
 
+export interface ScheduleItem {
+  id: number;
+  dayOfWeek: number;
+  timeSlot: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  genre?: string | null;
+  createdAt?: string;
+}
+
+export interface ScheduleItemInput {
+  dayOfWeek: number;
+  timeSlot: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  genre?: string | null;
+}
+
+export interface Article {
+  id: number;
+  title: string;
+  content: string;
+  authorName: string;
+  published: boolean;
+  createdAt: string;
+  /** @nullable */
+  updatedAt?: string | null;
+}
+
+export interface ArticlesPage {
+  articles: Article[];
+  total: number;
+}
+
+export interface ArticleInput {
+  title: string;
+  content: string;
+  authorName: string;
+  published?: boolean;
+}
+
+export interface ForumTopic {
+  id: number;
+  title: string;
+  category: string;
+  authorName: string;
+  replyCount: number;
+  createdAt: string;
+}
+
+export interface ForumTopicsPage {
+  topics: ForumTopic[];
+  total: number;
+}
+
+export interface ForumTopicInput {
+  title: string;
+  category?: string;
+  authorName: string;
+}
+
+export interface ForumReply {
+  id: number;
+  topicId: number;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface ForumTopicDetail {
+  topic: ForumTopic;
+  replies: ForumReply[];
+}
+
+export interface ForumReplyInput {
+  authorName: string;
+  content: string;
+}
+
 export type GetPostsParams = {
   page?: number;
   limit?: number;

@@ -8,6 +8,15 @@
 
 export * from "./adminAuthResult";
 export * from "./adminLoginInput";
+export * from "./article";
+export * from "./articleInput";
+export * from "./articlesPage";
+export * from "./forumReply";
+export * from "./forumReplyInput";
+export * from "./forumTopic";
+export * from "./forumTopicDetail";
+export * from "./forumTopicInput";
+export * from "./forumTopicsPage";
 export * from "./getPostsParams";
 export * from "./healthStatus";
 export * from "./livestream";
@@ -19,6 +28,8 @@ export * from "./post";
 export * from "./postInput";
 export * from "./postSource";
 export * from "./postsPage";
+export * from "./scheduleItem";
+export * from "./scheduleItemInput";
 export * from "./siteSettings";
 export * from "./siteSettingsInput";
 export * from "./telegramStatus";

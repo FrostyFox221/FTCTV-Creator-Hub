@@ -21,6 +21,12 @@ tags:
     description: Site settings
   - name: maintenance
     description: Maintenance mode
+  - name: schedule
+    description: Broadcast schedule
+  - name: articles
+    description: Author articles
+  - name: forum
+    description: Community forum
 
 paths:
   /healthz:
@@ -267,6 +273,301 @@ paths:
         "401":
           description: Unauthorized
 
+  /schedule:
+    get:
+      operationId: getSchedule
+      tags: [schedule]
+      summary: Get broadcast schedule
+      responses:
+        "200":
+          description: Schedule items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleItem"
+    post:
+      operationId: createScheduleItem
+      tags: [schedule]
+      summary: Create schedule item (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleItemInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleItem"
+        "401":
+          description: Unauthorized
+
+  /schedule/{id}:
+    put:
+      operationId: updateScheduleItem
+      tags: [schedule]
+      summary: Update schedule item (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleItemInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleItem"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: deleteScheduleItem
+      tags: [schedule]
+      summary: Delete schedule item (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+
+  /articles:
+    get:
+      operationId: getArticles
+      tags: [articles]
+      summary: Get articles
+      responses:
+        "200":
+          description: Articles list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesPage"
+    post:
+      operationId: createArticle
+      tags: [articles]
+      summary: Create article (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "401":
+          description: Unauthorized
+
+  /articles/{id}:
+    get:
+      operationId: getArticle
+      tags: [articles]
+      summary: Get single article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "404":
+          description: Not found
+    put:
+      operationId: updateArticle
+      tags: [articles]
+      summary: Update article (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: deleteArticle
+      tags: [articles]
+      summary: Delete article (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+
+  /forum/topics:
+    get:
+      operationId: getForumTopics
+      tags: [forum]
+      summary: Get forum topics
+      responses:
+        "200":
+          description: Topics list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopicsPage"
+    post:
+      operationId: createForumTopic
+      tags: [forum]
+      summary: Create forum topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForumTopicInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopic"
+
+  /forum/topics/{id}:
+    get:
+      operationId: getForumTopic
+      tags: [forum]
+      summary: Get topic with replies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Topic with replies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopicDetail"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteForumTopic
+      tags: [forum]
+      summary: Delete topic (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+
+  /forum/topics/{id}/replies:
+    post:
+      operationId: createForumReply
+      tags: [forum]
+      summary: Post a reply
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForumReplyInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumReply"
+        "404":
+          description: Topic not found
+
+  /forum/replies/{id}:
+    delete:
+      operationId: deleteForumReply
+      tags: [forum]
+      summary: Delete reply (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+
   /maintenance:
     get:
       operationId: getMaintenanceStatus
@@ -494,4 +795,155 @@ components:
       required: [message]
       properties:
         message:
+          type: string
+
+    ScheduleItem:
+      type: object
+      required: [id, dayOfWeek, timeSlot, title]
+      properties:
+        id:
+          type: integer
+        dayOfWeek:
+          type: integer
+        timeSlot:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        genre:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ScheduleItemInput:
+      type: object
+      required: [dayOfWeek, timeSlot, title]
+      properties:
+        dayOfWeek:
+          type: integer
+        timeSlot:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        genre:
+          type: ["string", "null"]
+
+    Article:
+      type: object
+      required: [id, title, content, authorName, published, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        authorName:
+          type: string
+        published:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+
+    ArticlesPage:
+      type: object
+      required: [articles, total]
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Article"
+        total:
+          type: integer
+
+    ArticleInput:
+      type: object
+      required: [title, content, authorName]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        authorName:
+          type: string
+        published:
+          type: boolean
+
+    ForumTopic:
+      type: object
+      required: [id, title, category, authorName, replyCount, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        category:
+          type: string
+        authorName:
+          type: string
+        replyCount:
+          type: integer
+        createdAt:
+          type: string
+
+    ForumTopicsPage:
+      type: object
+      required: [topics, total]
+      properties:
+        topics:
+          type: array
+          items:
+            $ref: "#/components/schemas/ForumTopic"
+        total:
+          type: integer
+
+    ForumTopicInput:
+      type: object
+      required: [title, authorName]
+      properties:
+        title:
+          type: string
+        category:
+          type: string
+        authorName:
+          type: string
+
+    ForumReply:
+      type: object
+      required: [id, topicId, authorName, content, createdAt]
+      properties:
+        id:
+          type: integer
+        topicId:
+          type: integer
+        authorName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    ForumTopicDetail:
+      type: object
+      required: [topic, replies]
+      properties:
+        topic:
+          $ref: "#/components/schemas/ForumTopic"
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/ForumReply"
+
+    ForumReplyInput:
+      type: object
+      required: [authorName, content]
+      properties:
+        authorName:
+          type: string
+        content:
           type: string

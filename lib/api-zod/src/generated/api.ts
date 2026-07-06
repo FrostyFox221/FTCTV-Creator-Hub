@@ -244,6 +244,234 @@ export const UpdateSettingsResponse = zod.object({
 });
 
 /**
+ * @summary Get broadcast schedule
+ */
+export const GetScheduleResponseItem = zod.object({
+  id: zod.number(),
+  dayOfWeek: zod.number(),
+  timeSlot: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  genre: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const GetScheduleResponse = zod.array(GetScheduleResponseItem);
+
+/**
+ * @summary Create schedule item (admin)
+ */
+export const CreateScheduleItemBody = zod.object({
+  dayOfWeek: zod.number(),
+  timeSlot: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  genre: zod.string().nullish(),
+});
+
+/**
+ * @summary Update schedule item (admin)
+ */
+export const UpdateScheduleItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateScheduleItemBody = zod.object({
+  dayOfWeek: zod.number(),
+  timeSlot: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  genre: zod.string().nullish(),
+});
+
+export const UpdateScheduleItemResponse = zod.object({
+  id: zod.number(),
+  dayOfWeek: zod.number(),
+  timeSlot: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  genre: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete schedule item (admin)
+ */
+export const DeleteScheduleItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteScheduleItemResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get articles
+ */
+export const GetArticlesResponse = zod.object({
+  articles: zod.array(
+    zod.object({
+      id: zod.number(),
+      title: zod.string(),
+      content: zod.string(),
+      authorName: zod.string(),
+      published: zod.boolean(),
+      createdAt: zod.string(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Create article (admin)
+ */
+export const CreateArticleBody = zod.object({
+  title: zod.string(),
+  content: zod.string(),
+  authorName: zod.string(),
+  published: zod.boolean().optional(),
+});
+
+/**
+ * @summary Get single article
+ */
+export const GetArticleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetArticleResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  content: zod.string(),
+  authorName: zod.string(),
+  published: zod.boolean(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().nullish(),
+});
+
+/**
+ * @summary Update article (admin)
+ */
+export const UpdateArticleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateArticleBody = zod.object({
+  title: zod.string(),
+  content: zod.string(),
+  authorName: zod.string(),
+  published: zod.boolean().optional(),
+});
+
+export const UpdateArticleResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  content: zod.string(),
+  authorName: zod.string(),
+  published: zod.boolean(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete article (admin)
+ */
+export const DeleteArticleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteArticleResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get forum topics
+ */
+export const GetForumTopicsResponse = zod.object({
+  topics: zod.array(
+    zod.object({
+      id: zod.number(),
+      title: zod.string(),
+      category: zod.string(),
+      authorName: zod.string(),
+      replyCount: zod.number(),
+      createdAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Create forum topic
+ */
+export const CreateForumTopicBody = zod.object({
+  title: zod.string(),
+  category: zod.string().optional(),
+  authorName: zod.string(),
+});
+
+/**
+ * @summary Get topic with replies
+ */
+export const GetForumTopicParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetForumTopicResponse = zod.object({
+  topic: zod.object({
+    id: zod.number(),
+    title: zod.string(),
+    category: zod.string(),
+    authorName: zod.string(),
+    replyCount: zod.number(),
+    createdAt: zod.string(),
+  }),
+  replies: zod.array(
+    zod.object({
+      id: zod.number(),
+      topicId: zod.number(),
+      authorName: zod.string(),
+      content: zod.string(),
+      createdAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete topic (admin)
+ */
+export const DeleteForumTopicParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteForumTopicResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Post a reply
+ */
+export const CreateForumReplyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateForumReplyBody = zod.object({
+  authorName: zod.string(),
+  content: zod.string(),
+});
+
+/**
+ * @summary Delete reply (admin)
+ */
+export const DeleteForumReplyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteForumReplyResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Get current maintenance status
  */
 export const GetMaintenanceStatusResponse = zod.object({

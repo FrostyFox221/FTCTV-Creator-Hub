@@ -73,6 +73,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
               Прямой эфир
             </Link>
+            <Link
+              href="/media"
+              className={`text-sm font-semibold uppercase tracking-wider transition-colors hover:text-primary ${
+                location.startsWith('/media') ? 'text-primary' : 'text-foreground/70'
+              }`}
+            >
+              FTC Media
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2 z-50">
@@ -139,6 +147,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
               )}
             </Link>
             <Link
+              href="/media"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`text-base font-semibold uppercase tracking-wider p-3 rounded-lg ${
+                location.startsWith('/media') ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'
+              }`}
+            >
+              FTC Media
+            </Link>
+            <Link
               href="/admin"
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 mt-2 border-t text-muted-foreground hover:text-foreground"
@@ -165,7 +182,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <h4 className="text-white uppercase font-bold tracking-wider mb-2 text-sm">Навигация</h4>
             <Link href="/" className="hover:text-white transition-colors text-sm">Главная</Link>
             <Link href="/live" className="hover:text-white transition-colors text-sm">Прямой эфир</Link>
-            <Link href="#" className="hover:text-white transition-colors text-sm">Для рекламодателей</Link>
+            <Link href="/media" className="hover:text-white transition-colors text-sm">FTC Media</Link>
+            <Link href="/media/schedule" className="hover:text-white transition-colors text-sm">Сетка вещания</Link>
+            <Link href="/media/forum" className="hover:text-white transition-colors text-sm">Форум</Link>
           </div>
 
           <div className="flex flex-col items-center md:items-start gap-3">

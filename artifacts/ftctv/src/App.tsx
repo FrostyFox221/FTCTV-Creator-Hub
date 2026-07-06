@@ -8,6 +8,12 @@ import Home from "@/pages/home";
 import PostDetail from "@/pages/post-detail";
 import Live from "@/pages/live";
 import Admin from "@/pages/admin";
+import Media from "@/pages/media";
+import MediaSchedule from "@/pages/media-schedule";
+import MediaArticles from "@/pages/media-articles";
+import MediaArticleDetail from "@/pages/media-article-detail";
+import MediaForum from "@/pages/media-forum";
+import MediaForumTopic from "@/pages/media-forum-topic";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +25,12 @@ function Router() {
         <Route path="/post/:id" component={PostDetail} />
         <Route path="/live" component={Live} />
         <Route path="/admin" component={Admin} />
+        <Route path="/media" component={Media} />
+        <Route path="/media/schedule" component={MediaSchedule} />
+        <Route path="/media/articles" component={MediaArticles} />
+        <Route path="/media/articles/:id" component={MediaArticleDetail} />
+        <Route path="/media/forum" component={MediaForum} />
+        <Route path="/media/forum/:id" component={MediaForumTopic} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
