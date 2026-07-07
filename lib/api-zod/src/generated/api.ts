@@ -268,6 +268,9 @@ export const GetScheduleResponseItem = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   genre: zod.string().nullish(),
+  date: zod.string().nullish(),
+  isPremiere: zod.boolean(),
+  isLiveShow: zod.boolean(),
   createdAt: zod.string().optional(),
 });
 export const GetScheduleResponse = zod.array(GetScheduleResponseItem);
@@ -281,6 +284,9 @@ export const CreateScheduleItemBody = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   genre: zod.string().nullish(),
+  date: zod.string().nullish(),
+  isPremiere: zod.boolean().optional(),
+  isLiveShow: zod.boolean().optional(),
 });
 
 /**
@@ -296,6 +302,9 @@ export const UpdateScheduleItemBody = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   genre: zod.string().nullish(),
+  date: zod.string().nullish(),
+  isPremiere: zod.boolean().optional(),
+  isLiveShow: zod.boolean().optional(),
 });
 
 export const UpdateScheduleItemResponse = zod.object({
@@ -305,6 +314,9 @@ export const UpdateScheduleItemResponse = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
   genre: zod.string().nullish(),
+  date: zod.string().nullish(),
+  isPremiere: zod.boolean(),
+  isLiveShow: zod.boolean(),
   createdAt: zod.string().optional(),
 });
 
@@ -484,6 +496,100 @@ export const DeleteForumReplyParams = zod.object({
 
 export const DeleteForumReplyResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * @summary Get all banners
+ */
+export const GetBannersResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  text: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  link: zod.string().nullish(),
+  isEnabled: zod.boolean(),
+  sortOrder: zod.number(),
+  createdAt: zod.string(),
+});
+export const GetBannersResponse = zod.array(GetBannersResponseItem);
+
+/**
+ * @summary Create banner (admin)
+ */
+export const CreateBannerBody = zod.object({
+  title: zod.string(),
+  text: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  link: zod.string().nullish(),
+  isEnabled: zod.boolean().optional(),
+  sortOrder: zod.number().optional(),
+});
+
+/**
+ * @summary Update banner (admin)
+ */
+export const UpdateBannerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBannerBody = zod.object({
+  title: zod.string(),
+  text: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  link: zod.string().nullish(),
+  isEnabled: zod.boolean().optional(),
+  sortOrder: zod.number().optional(),
+});
+
+export const UpdateBannerResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  text: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  link: zod.string().nullish(),
+  isEnabled: zod.boolean(),
+  sortOrder: zod.number(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete banner (admin)
+ */
+export const DeleteBannerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteBannerResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Register a new user
+ */
+export const registerUserBodyUsernameMin = 3;
+
+export const registerUserBodyDisplayNameMin = 2;
+
+export const registerUserBodyPasswordMin = 6;
+
+export const RegisterUserBody = zod.object({
+  username: zod.string().min(registerUserBodyUsernameMin),
+  displayName: zod.string().min(registerUserBodyDisplayNameMin),
+  password: zod.string().min(registerUserBodyPasswordMin),
+});
+
+/**
+ * @summary Login with username and password
+ */
+export const LoginUserBody = zod.object({
+  username: zod.string(),
+  password: zod.string(),
+});
+
+export const LoginUserResponse = zod.object({
+  token: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
 });
 
 /**

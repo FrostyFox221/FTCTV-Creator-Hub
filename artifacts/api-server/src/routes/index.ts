@@ -10,6 +10,8 @@ import scheduleRouter from "./schedule";
 import articlesRouter from "./articles";
 import forumRouter from "./forum";
 import storageRouter from "./storage";
+import bannersRouter from "./banners";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
@@ -24,5 +26,7 @@ router.use(scheduleRouter);
 router.use(articlesRouter);
 router.use(forumRouter);
 router.use(storageRouter);
+router.use(bannersRouter);
+router.use(authRouter);
 
 export default router;

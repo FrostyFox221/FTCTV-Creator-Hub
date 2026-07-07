@@ -27,6 +27,10 @@ tags:
     description: Author articles
   - name: forum
     description: Community forum
+  - name: banners
+    description: Banner/ad management
+  - name: auth
+    description: User authentication
   - name: Storage
     description: Object storage upload and serving endpoints.
 
@@ -570,6 +574,128 @@ paths:
         "401":
           description: Unauthorized
 
+  /banners:
+    get:
+      operationId: getBanners
+      tags: [banners]
+      summary: Get all banners
+      responses:
+        "200":
+          description: List of banners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Banner"
+    post:
+      operationId: createBanner
+      tags: [banners]
+      summary: Create banner (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BannerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Banner"
+        "401":
+          description: Unauthorized
+
+  /banners/{id}:
+    put:
+      operationId: updateBanner
+      tags: [banners]
+      summary: Update banner (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BannerInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Banner"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: deleteBanner
+      tags: [banners]
+      summary: Delete banner (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAuthResponse"
+        "400":
+          description: Validation error or username taken
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAuthResponse"
+        "401":
+          description: Invalid credentials
+
   /storage/uploads/request-url:
     post:
       tags: [Storage]
@@ -865,7 +991,7 @@ components:
 
     ScheduleItem:
       type: object
-      required: [id, dayOfWeek, timeSlot, title]
+      required: [id, dayOfWeek, timeSlot, title, isPremiere, isLiveShow]
       properties:
         id:
           type: integer
@@ -879,6 +1005,12 @@ components:
           type: ["string", "null"]
         genre:
           type: ["string", "null"]
+        date:
+          type: ["string", "null"]
+        isPremiere:
+          type: boolean
+        isLiveShow:
+          type: boolean
         createdAt:
           type: string
 
@@ -896,6 +1028,84 @@ components:
           type: ["string", "null"]
         genre:
           type: ["string", "null"]
+        date:
+          type: ["string", "null"]
+        isPremiere:
+          type: boolean
+        isLiveShow:
+          type: boolean
+
+    Banner:
+      type: object
+      required: [id, title, isEnabled, sortOrder, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        text:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        link:
+          type: ["string", "null"]
+        isEnabled:
+          type: boolean
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+
+    BannerInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        text:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        link:
+          type: ["string", "null"]
+        isEnabled:
+          type: boolean
+        sortOrder:
+          type: integer
+
+    UserRegisterInput:
+      type: object
+      required: [username, displayName, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+        displayName:
+          type: string
+          minLength: 2
+        password:
+          type: string
+          minLength: 6
+
+    UserLoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    UserAuthResponse:
+      type: object
+      required: [token, username, displayName]
+      properties:
+        token:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
 
     Article:
       type: object

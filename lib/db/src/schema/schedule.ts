@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -9,6 +9,9 @@ export const scheduleTable = pgTable("schedule", {
   title: text("title").notNull(),
   description: text("description"),
   genre: text("genre"),
+  date: text("date"), // optional specific date e.g. "2026-07-10"
+  isPremiere: boolean("is_premiere").notNull().default(false),
+  isLiveShow: boolean("is_live_show").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

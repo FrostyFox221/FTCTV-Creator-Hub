@@ -6,18 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ScheduleItem {
+export interface Banner {
   id: number;
-  dayOfWeek: number;
-  timeSlot: string;
   title: string;
   /** @nullable */
-  description?: string | null;
+  text?: string | null;
   /** @nullable */
-  genre?: string | null;
+  imageUrl?: string | null;
   /** @nullable */
-  date?: string | null;
-  isPremiere: boolean;
-  isLiveShow: boolean;
-  createdAt?: string;
+  link?: string | null;
+  isEnabled: boolean;
+  sortOrder: number;
+  createdAt: string;
 }

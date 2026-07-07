@@ -14,6 +14,7 @@ import MediaArticles from "@/pages/media-articles";
 import MediaArticleDetail from "@/pages/media-article-detail";
 import MediaForum from "@/pages/media-forum";
 import MediaForumTopic from "@/pages/media-forum-topic";
+import { LoginPage, RegisterPage } from "@/pages/auth";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,8 @@ function Router() {
         <Route path="/media/articles/:id" component={MediaArticleDetail} />
         <Route path="/media/forum" component={MediaForum} />
         <Route path="/media/forum/:id" component={MediaForumTopic} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/register" component={RegisterPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

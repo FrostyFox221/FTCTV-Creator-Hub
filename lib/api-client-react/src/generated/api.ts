@@ -22,6 +22,8 @@ import type {
   Article,
   ArticleInput,
   ArticlesPage,
+  Banner,
+  BannerInput,
   ForumReply,
   ForumReplyInput,
   ForumTopic,
@@ -46,6 +48,9 @@ import type {
   TelegramSyncResult,
   UploadUrlRequest,
   UploadUrlResponse,
+  UserAuthResponse,
+  UserLoginInput,
+  UserRegisterInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2381,6 +2386,508 @@ export const useDeleteForumReply = <
   TContext
 > => {
   return useMutation(getDeleteForumReplyMutationOptions(options));
+};
+
+/**
+ * @summary Get all banners
+ */
+export const getGetBannersUrl = () => {
+  return `/api/banners`;
+};
+
+export const getBanners = async (options?: RequestInit): Promise<Banner[]> => {
+  return customFetch<Banner[]>(getGetBannersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBannersQueryKey = () => {
+  return [`/api/banners`] as const;
+};
+
+export const getGetBannersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBanners>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBanners>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBannersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBanners>>> = ({
+    signal,
+  }) => getBanners({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBanners>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBannersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBanners>>
+>;
+export type GetBannersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all banners
+ */
+
+export function useGetBanners<
+  TData = Awaited<ReturnType<typeof getBanners>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBanners>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBannersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create banner (admin)
+ */
+export const getCreateBannerUrl = () => {
+  return `/api/banners`;
+};
+
+export const createBanner = async (
+  bannerInput: BannerInput,
+  options?: RequestInit,
+): Promise<Banner> => {
+  return customFetch<Banner>(getCreateBannerUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bannerInput),
+  });
+};
+
+export const getCreateBannerMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBanner>>,
+    TError,
+    { data: BodyType<BannerInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBanner>>,
+  TError,
+  { data: BodyType<BannerInput> },
+  TContext
+> => {
+  const mutationKey = ["createBanner"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBanner>>,
+    { data: BodyType<BannerInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBanner(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBannerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBanner>>
+>;
+export type CreateBannerMutationBody = BodyType<BannerInput>;
+export type CreateBannerMutationError = ErrorType<void>;
+
+/**
+ * @summary Create banner (admin)
+ */
+export const useCreateBanner = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBanner>>,
+    TError,
+    { data: BodyType<BannerInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBanner>>,
+  TError,
+  { data: BodyType<BannerInput> },
+  TContext
+> => {
+  return useMutation(getCreateBannerMutationOptions(options));
+};
+
+/**
+ * @summary Update banner (admin)
+ */
+export const getUpdateBannerUrl = (id: number) => {
+  return `/api/banners/${id}`;
+};
+
+export const updateBanner = async (
+  id: number,
+  bannerInput: BannerInput,
+  options?: RequestInit,
+): Promise<Banner> => {
+  return customFetch<Banner>(getUpdateBannerUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bannerInput),
+  });
+};
+
+export const getUpdateBannerMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBanner>>,
+    TError,
+    { id: number; data: BodyType<BannerInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBanner>>,
+  TError,
+  { id: number; data: BodyType<BannerInput> },
+  TContext
+> => {
+  const mutationKey = ["updateBanner"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBanner>>,
+    { id: number; data: BodyType<BannerInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateBanner(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBannerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateBanner>>
+>;
+export type UpdateBannerMutationBody = BodyType<BannerInput>;
+export type UpdateBannerMutationError = ErrorType<void>;
+
+/**
+ * @summary Update banner (admin)
+ */
+export const useUpdateBanner = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBanner>>,
+    TError,
+    { id: number; data: BodyType<BannerInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateBanner>>,
+  TError,
+  { id: number; data: BodyType<BannerInput> },
+  TContext
+> => {
+  return useMutation(getUpdateBannerMutationOptions(options));
+};
+
+/**
+ * @summary Delete banner (admin)
+ */
+export const getDeleteBannerUrl = (id: number) => {
+  return `/api/banners/${id}`;
+};
+
+export const deleteBanner = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteBannerUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteBannerMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBanner>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBanner>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteBanner"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBanner>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteBanner(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBannerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBanner>>
+>;
+
+export type DeleteBannerMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete banner (admin)
+ */
+export const useDeleteBanner = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBanner>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBanner>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteBannerMutationOptions(options));
+};
+
+/**
+ * @summary Register a new user
+ */
+export const getRegisterUserUrl = () => {
+  return `/api/auth/register`;
+};
+
+export const registerUser = async (
+  userRegisterInput: UserRegisterInput,
+  options?: RequestInit,
+): Promise<UserAuthResponse> => {
+  return customFetch<UserAuthResponse>(getRegisterUserUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(userRegisterInput),
+  });
+};
+
+export const getRegisterUserMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerUser>>,
+    TError,
+    { data: BodyType<UserRegisterInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerUser>>,
+  TError,
+  { data: BodyType<UserRegisterInput> },
+  TContext
+> => {
+  const mutationKey = ["registerUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerUser>>,
+    { data: BodyType<UserRegisterInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerUser(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerUser>>
+>;
+export type RegisterUserMutationBody = BodyType<UserRegisterInput>;
+export type RegisterUserMutationError = ErrorType<void>;
+
+/**
+ * @summary Register a new user
+ */
+export const useRegisterUser = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerUser>>,
+    TError,
+    { data: BodyType<UserRegisterInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerUser>>,
+  TError,
+  { data: BodyType<UserRegisterInput> },
+  TContext
+> => {
+  return useMutation(getRegisterUserMutationOptions(options));
+};
+
+/**
+ * @summary Login with username and password
+ */
+export const getLoginUserUrl = () => {
+  return `/api/auth/login`;
+};
+
+export const loginUser = async (
+  userLoginInput: UserLoginInput,
+  options?: RequestInit,
+): Promise<UserAuthResponse> => {
+  return customFetch<UserAuthResponse>(getLoginUserUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(userLoginInput),
+  });
+};
+
+export const getLoginUserMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof loginUser>>,
+    TError,
+    { data: BodyType<UserLoginInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof loginUser>>,
+  TError,
+  { data: BodyType<UserLoginInput> },
+  TContext
+> => {
+  const mutationKey = ["loginUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof loginUser>>,
+    { data: BodyType<UserLoginInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return loginUser(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LoginUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof loginUser>>
+>;
+export type LoginUserMutationBody = BodyType<UserLoginInput>;
+export type LoginUserMutationError = ErrorType<void>;
+
+/**
+ * @summary Login with username and password
+ */
+export const useLoginUser = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof loginUser>>,
+    TError,
+    { data: BodyType<UserLoginInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof loginUser>>,
+  TError,
+  { data: BodyType<UserLoginInput> },
+  TContext
+> => {
+  return useMutation(getLoginUserMutationOptions(options));
 };
 
 /**

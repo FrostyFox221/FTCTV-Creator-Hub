@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus, useGetSchedule } from "@workspace/api-client-react";
+import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus, useGetSchedule, useGetBanners } from "@workspace/api-client-react";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload } from "lucide-react";
+import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload, Edit2, Star, Image } from "lucide-react";
 import { useUpload } from "@workspace/object-storage-web";
 import logoPath from "/logo.png";
 
@@ -127,13 +127,14 @@ export default function Admin() {
         <TabsList className="mb-8 w-full justify-start overflow-x-auto bg-transparent h-auto p-0 gap-2 border-b rounded-none pb-px no-scrollbar">
           {[
             { id: "posts", label: "Новости", icon: FileText },
-            { id: "schedule", label: "Сетка вещания", icon: Calendar },
+            { id: "banners", label: "Реклама", icon: Image },
+            { id: "schedule", label: "Программа передач", icon: Calendar },
             { id: "live", label: "Прямой эфир", icon: Radio },
             { id: "telegram", label: "Telegram", icon: MessageCircle },
             { id: "settings", label: "Настройки", icon: Settings }
           ].map(tab => (
-            <TabsTrigger 
-              key={tab.id} 
+            <TabsTrigger
+              key={tab.id}
               value={tab.id}
               className="rounded-t-xl rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-card px-6 py-3.5 uppercase tracking-wider text-xs font-bold flex items-center gap-2 text-muted-foreground data-[state=active]:text-foreground transition-colors"
             >
@@ -145,6 +146,7 @@ export default function Admin() {
 
         <div className="bg-card border rounded-b-2xl rounded-tr-2xl shadow-sm min-h-[400px]">
           <TabsContent value="posts" className="m-0 p-0"><PostsTab /></TabsContent>
+          <TabsContent value="banners" className="m-0 p-0"><BannersTab /></TabsContent>
           <TabsContent value="schedule" className="m-0 p-0"><ScheduleTab /></TabsContent>
           <TabsContent value="live" className="m-0 p-0"><LiveTab /></TabsContent>
           <TabsContent value="telegram" className="m-0 p-0"><TelegramTab /></TabsContent>
@@ -233,8 +235,8 @@ function PostsTab() {
   const [showNewForm, setShowNewForm] = useState(false);
   const [newPost, setNewPost] = useState({ title: "", content: "", images: [] as string[] });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingImages, setEditingImages] = useState<{ id: number; images: string[] } | null>(null);
-  const [savingImages, setSavingImages] = useState(false);
+  const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string; images: string[] } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить новость? Действие необратимо.")) return;
@@ -267,21 +269,22 @@ function PostsTab() {
     }
   };
 
-  const handleSaveImages = async () => {
-    if (!editingImages) return;
-    setSavingImages(true);
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPost) return;
+    setSavingEdit(true);
     try {
-      await fetchWithToken(`/api/posts/${editingImages.id}`, {
+      await fetchWithToken(`/api/posts/${editingPost.id}`, {
         method: "PUT",
-        body: JSON.stringify({ images: editingImages.images })
+        body: JSON.stringify({ title: editingPost.title, content: editingPost.content, images: editingPost.images })
       });
-      toast({ title: "Фотографии обновлены" });
-      setEditingImages(null);
+      toast({ title: "Новость обновлена" });
+      setEditingPost(null);
       refetch();
     } catch (e: any) {
       toast({ title: "Ошибка", description: e.message, variant: "destructive" });
     } finally {
-      setSavingImages(false);
+      setSavingEdit(false);
     }
   };
 
@@ -329,17 +332,30 @@ function PostsTab() {
         </form>
       )}
 
-      {editingImages && (
-        <div className="p-6 border-b bg-primary/5 border-primary/20 flex flex-col gap-4 animate-in slide-in-from-top-4">
+      {editingPost && (
+        <form onSubmit={handleSaveEdit} className="p-6 border-b bg-primary/5 border-primary/20 flex flex-col gap-4 animate-in slide-in-from-top-4">
           <div className="flex items-center justify-between">
-            <label className="font-bold uppercase text-xs text-primary tracking-wider">Редактирование фото — пост #{editingImages.id}</label>
-            <button type="button" onClick={() => setEditingImages(null)} className="text-muted-foreground hover:text-foreground text-sm">Закрыть</button>
+            <label className="font-bold uppercase text-xs text-primary tracking-wider">Редактирование поста #{editingPost.id}</label>
+            <button type="button" onClick={() => setEditingPost(null)} className="text-muted-foreground hover:text-foreground text-sm">Закрыть</button>
           </div>
-          <ImageUrlsInput value={editingImages.images} onChange={imgs => setEditingImages({...editingImages, images: imgs})} />
-          <Button onClick={handleSaveImages} disabled={savingImages} className="self-start uppercase font-bold tracking-wider text-xs rounded-full">
-            {savingImages ? "Сохранение..." : "Сохранить фото"}
-          </Button>
-        </div>
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок</label>
+            <Input value={editingPost.title} onChange={e => setEditingPost({ ...editingPost, title: e.target.value })} required />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Текст</label>
+            <Textarea value={editingPost.content} onChange={e => setEditingPost({ ...editingPost, content: e.target.value })} rows={8} className="resize-y font-mono text-sm" required />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Фотографии</label>
+            <ImageUrlsInput value={editingPost.images} onChange={imgs => setEditingPost({ ...editingPost, images: imgs })} />
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={savingEdit} className="uppercase font-bold tracking-wider">
+              {savingEdit ? "Сохранение..." : "Сохранить изменения"}
+            </Button>
+          </div>
+        </form>
       )}
 
       <div className="overflow-x-auto">
@@ -378,11 +394,11 @@ function PostsTab() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setEditingImages(editingImages?.id === p.id ? null : { id: p.id, images: p.images ?? [] })}
+                    onClick={() => setEditingPost(editingPost?.id === p.id ? null : { id: p.id, title: p.title, content: p.content, images: p.images ?? [] })}
                     className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full"
-                    title="Редактировать фото"
+                    title="Редактировать"
                   >
-                    <FileText className="w-4 h-4" />
+                    <Edit2 className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -408,6 +424,201 @@ function PostsTab() {
   );
 }
 
+function BannersTab() {
+  const { data: banners, refetch } = useGetBanners({ query: { queryKey: ["admin_banners"] } });
+  const { fetchWithToken } = useAdminFetch();
+  const { toast } = useToast();
+
+  const emptyForm = { title: "", text: "", imageUrl: "", link: "", isEnabled: true, sortOrder: 0 };
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<null | { id: number } & typeof emptyForm>(null);
+  const [saving, setSaving] = useState(false);
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { uploadFile, isUploading, progress } = useUpload({
+    onError: (e) => toast({ title: "Ошибка загрузки", description: e.message, variant: "destructive" }),
+  });
+
+  const handleUpload = async (files: FileList | null, onDone: (url: string) => void) => {
+    if (!files || !files[0]) return;
+    const res = await uploadFile(files[0]);
+    if (res) onDone(`/api/storage${res.objectPath}`);
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title) return;
+    setSubmitting(true);
+    try {
+      await fetchWithToken("/api/banners", { method: "POST", body: JSON.stringify({ ...form, text: form.text || undefined, imageUrl: form.imageUrl || undefined, link: form.link || undefined }) });
+      toast({ title: "Баннер добавлен" });
+      setForm(emptyForm);
+      setShowForm(false);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally { setSubmitting(false); }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBanner) return;
+    setSaving(true);
+    try {
+      await fetchWithToken(`/api/banners/${editingBanner.id}`, { method: "PUT", body: JSON.stringify({ title: editingBanner.title, text: editingBanner.text || undefined, imageUrl: editingBanner.imageUrl || undefined, link: editingBanner.link || undefined, isEnabled: editingBanner.isEnabled, sortOrder: editingBanner.sortOrder }) });
+      toast({ title: "Баннер обновлён" });
+      setEditingBanner(null);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Удалить баннер?")) return;
+    try {
+      await fetchWithToken(`/api/banners/${id}`, { method: "DELETE" });
+      toast({ title: "Баннер удалён" });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const toggleEnabled = async (id: number, isEnabled: boolean) => {
+    try {
+      await fetchWithToken(`/api/banners/${id}`, { method: "PUT", body: JSON.stringify({ isEnabled }) });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const BannerForm = ({ f, set, onSubmit, loading, btnLabel }: { f: typeof emptyForm; set: (v: typeof emptyForm) => void; onSubmit: (e: React.FormEvent) => void; loading: boolean; btnLabel: string }) => (
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок *</label>
+          <Input value={f.title} onChange={e => set({ ...f, title: e.target.value })} placeholder="Заголовок баннера" required />
+        </div>
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Текст (необязательно)</label>
+          <Textarea value={f.text} onChange={e => set({ ...f, text: e.target.value })} rows={2} placeholder="Краткое описание" />
+        </div>
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Фоновое изображение 16:9</label>
+          <div className="flex items-center gap-3">
+            <Input value={f.imageUrl} onChange={e => set({ ...f, imageUrl: e.target.value })} placeholder="https://... или загрузите файл" className="flex-1" />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleUpload(e.target.files, url => set({ ...f, imageUrl: url }))} />
+            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={isUploading} className="gap-2 text-xs shrink-0">
+              <Upload className="w-4 h-4" /> {isUploading ? `${progress}%` : "Загрузить"}
+            </Button>
+          </div>
+          {f.imageUrl && <img src={f.imageUrl} alt="" className="mt-1 rounded-lg h-28 object-cover w-full" onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />}
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Ссылка (необязательно)</label>
+          <Input value={f.link} onChange={e => set({ ...f, link: e.target.value })} placeholder="https://..." />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Порядок отображения</label>
+          <Input type="number" value={f.sortOrder} onChange={e => set({ ...f, sortOrder: Number(e.target.value) })} min={0} />
+        </div>
+        <div className="flex items-center gap-3 col-span-full">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={f.isEnabled} onChange={e => set({ ...f, isEnabled: e.target.checked })} className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">Активен</span>
+          </label>
+        </div>
+      </div>
+      <div className="flex justify-end pt-2">
+        <Button type="submit" disabled={loading} className="uppercase font-bold tracking-wider">
+          {loading ? "Сохранение..." : btnLabel}
+        </Button>
+      </div>
+    </form>
+  );
+
+  return (
+    <div className="flex flex-col">
+      <div className="p-6 border-b flex justify-between items-center bg-secondary/30">
+        <div>
+          <h2 className="text-xl font-bold uppercase tracking-tight">Рекламные баннеры</h2>
+          <p className="text-xs text-muted-foreground mt-1">Баннеры отображаются на главной странице и ротируются каждые 10 секунд</p>
+        </div>
+        <Button onClick={() => { setShowForm(!showForm); setEditingBanner(null); }} className="uppercase font-bold tracking-wider text-xs rounded-full gap-1">
+          {showForm ? "Отмена" : <><Plus className="w-4 h-4" /> Добавить баннер</>}
+        </Button>
+      </div>
+
+      {showForm && (
+        <div className="p-6 border-b bg-card animate-in slide-in-from-top-4">
+          <h3 className="font-bold uppercase text-xs text-primary tracking-wider mb-4">Новый баннер</h3>
+          <BannerForm f={form} set={setForm} onSubmit={handleCreate} loading={submitting} btnLabel="Добавить" />
+        </div>
+      )}
+
+      {editingBanner && (
+        <div className="p-6 border-b bg-primary/5 border-primary/20 animate-in slide-in-from-top-4">
+          <div className="flex items-center justify-between mb-4">
+            <label className="font-bold uppercase text-xs text-primary tracking-wider">Редактирование баннера #{editingBanner.id}</label>
+            <button type="button" onClick={() => setEditingBanner(null)} className="text-muted-foreground hover:text-foreground text-sm">Закрыть</button>
+          </div>
+          <BannerForm
+            f={{ title: editingBanner.title, text: editingBanner.text, imageUrl: editingBanner.imageUrl, link: editingBanner.link, isEnabled: editingBanner.isEnabled, sortOrder: editingBanner.sortOrder }}
+            set={(v) => setEditingBanner({ ...editingBanner, ...v })}
+            onSubmit={handleSaveEdit}
+            loading={saving}
+            btnLabel="Сохранить"
+          />
+        </div>
+      )}
+
+      <div className="p-6">
+        {!banners || banners.length === 0 ? (
+          <div className="text-center py-16 border border-dashed rounded-xl text-muted-foreground">
+            <Image className="w-8 h-8 mx-auto mb-3 opacity-30" />
+            <p className="text-sm font-semibold uppercase tracking-wider">Нет баннеров</p>
+            <p className="text-xs mt-1">Добавьте первый рекламный баннер</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {banners.map(b => (
+              <div key={b.id} className={`flex gap-4 items-center rounded-xl border p-4 transition-all ${b.isEnabled ? 'bg-card' : 'bg-muted/30 opacity-60'}`}>
+                <div className="w-28 h-16 rounded-lg overflow-hidden shrink-0 bg-muted flex items-center justify-center border">
+                  {b.imageUrl ? <img src={b.imageUrl} alt={b.title} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} /> : <Image className="w-5 h-5 text-muted-foreground/40" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm truncate">{b.title}</p>
+                  {b.text && <p className="text-xs text-muted-foreground truncate">{b.text}</p>}
+                  {b.link && <p className="text-xs text-primary truncate">{b.link}</p>}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${b.isEnabled ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}>{b.isEnabled ? 'Активен' : 'Отключён'}</span>
+                    <span className="text-[10px] text-muted-foreground">Порядок: {b.sortOrder}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" onClick={() => toggleEnabled(b.id, !b.isEnabled)} className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full" title={b.isEnabled ? "Отключить" : "Включить"}>
+                    <span className="text-base">{b.isEnabled ? "⏸" : "▶"}</span>
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setEditingBanner({ id: b.id, title: b.title, text: b.text ?? "", imageUrl: b.imageUrl ?? "", link: b.link ?? "", isEnabled: b.isEnabled ?? true, sortOrder: b.sortOrder ?? 0 })} className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full">
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(b.id)} className="h-8 w-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-full">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const DAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
 
 function ScheduleTab() {
@@ -415,9 +626,12 @@ function ScheduleTab() {
   const { fetchWithToken } = useAdminFetch();
   const { toast } = useToast();
 
+  const emptyForm = { dayOfWeek: 0, timeSlot: "", title: "", genre: "", date: "", isPremiere: false, isLiveShow: false };
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ dayOfWeek: 0, timeSlot: "", title: "", genre: "" });
+  const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [editingItem, setEditingItem] = useState<null | { id: number } & typeof emptyForm>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -426,16 +640,35 @@ function ScheduleTab() {
     try {
       await fetchWithToken("/api/schedule", {
         method: "POST",
-        body: JSON.stringify({ ...form, genre: form.genre || undefined }),
+        body: JSON.stringify({ ...form, genre: form.genre || undefined, date: form.date || undefined }),
       });
       toast({ title: "Программа добавлена" });
-      setForm({ dayOfWeek: 0, timeSlot: "", title: "", genre: "" });
+      setForm(emptyForm);
       setShowForm(false);
       refetch();
     } catch (e: any) {
       toast({ title: "Ошибка", description: e.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setSaving(true);
+    try {
+      await fetchWithToken(`/api/schedule/${editingItem.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ dayOfWeek: editingItem.dayOfWeek, timeSlot: editingItem.timeSlot, title: editingItem.title, genre: editingItem.genre || undefined, date: editingItem.date || undefined, isPremiere: editingItem.isPremiere, isLiveShow: editingItem.isLiveShow }),
+      });
+      toast({ title: "Программа обновлена" });
+      setEditingItem(null);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -452,61 +685,81 @@ function ScheduleTab() {
 
   const byDay = DAYS.map((name, idx) => ({
     name,
-    items: (items ?? []).filter((i) => i.dayOfWeek === idx),
+    items: (items ?? []).filter((i) => i.dayOfWeek === idx).sort((a, b) => a.timeSlot.localeCompare(b.timeSlot)),
   }));
+
+  const ScheduleFormFields = ({ f, set }: { f: typeof emptyForm; set: (v: typeof emptyForm) => void }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">День недели</label>
+        <select value={f.dayOfWeek} onChange={(e) => set({ ...f, dayOfWeek: Number(e.target.value) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+          {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+        </select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Время начала</label>
+        <Input type="time" value={f.timeSlot} onChange={(e) => set({ ...f, timeSlot: e.target.value })} required />
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Название программы</label>
+        <Input placeholder="Например: Утренние новости" value={f.title} onChange={(e) => set({ ...f, title: e.target.value })} required />
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Жанр (необязательно)</label>
+        <Input placeholder="Например: Информационная" value={f.genre} onChange={(e) => set({ ...f, genre: e.target.value })} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Дата выхода (необязательно)</label>
+        <Input placeholder="Например: 12 июля 2026" value={f.date} onChange={(e) => set({ ...f, date: e.target.value })} />
+      </div>
+      <div className="flex items-center gap-6 pt-2">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={f.isPremiere} onChange={e => set({ ...f, isPremiere: e.target.checked })} className="w-4 h-4 accent-amber-500" />
+          <Star className="w-3.5 h-3.5 text-amber-500" />
+          <span className="text-xs font-bold uppercase tracking-wider">Премьера</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={f.isLiveShow} onChange={e => set({ ...f, isLiveShow: e.target.checked })} className="w-4 h-4 accent-red-500" />
+          <Radio className="w-3.5 h-3.5 text-red-500" />
+          <span className="text-xs font-bold uppercase tracking-wider">Прямой эфир</span>
+        </label>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col">
       <div className="p-6 border-b flex justify-between items-center bg-secondary/30">
-        <h2 className="text-xl font-bold uppercase tracking-tight">Сетка вещания</h2>
-        <Button onClick={() => setShowForm(!showForm)} className="uppercase font-bold tracking-wider text-xs rounded-full gap-1">
+        <h2 className="text-xl font-bold uppercase tracking-tight">Программа передач</h2>
+        <Button onClick={() => { setShowForm(!showForm); setEditingItem(null); }} className="uppercase font-bold tracking-wider text-xs rounded-full gap-1">
           {showForm ? "Отмена" : <><Plus className="w-4 h-4" /> Добавить программу</>}
         </Button>
       </div>
 
       {showForm && (
         <form onSubmit={handleCreate} className="p-6 border-b bg-card flex flex-col gap-4 animate-in slide-in-from-top-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">День недели</label>
-              <select
-                value={form.dayOfWeek}
-                onChange={(e) => setForm({ ...form, dayOfWeek: Number(e.target.value) })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Время начала</label>
-              <Input
-                type="time"
-                value={form.timeSlot}
-                onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Название программы</label>
-              <Input
-                placeholder="Например: Утренние новости"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Жанр (необязательно)</label>
-              <Input
-                placeholder="Например: Информационная"
-                value={form.genre}
-                onChange={(e) => setForm({ ...form, genre: e.target.value })}
-              />
-            </div>
-          </div>
+          <ScheduleFormFields f={form} set={setForm} />
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={submitting} className="uppercase font-bold tracking-wider">
               {submitting ? "Сохранение..." : "Добавить"}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {editingItem && (
+        <form onSubmit={handleSaveEdit} className="p-6 border-b bg-primary/5 border-primary/20 flex flex-col gap-4 animate-in slide-in-from-top-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="font-bold uppercase text-xs text-primary tracking-wider">Редактирование программы #{editingItem.id}</label>
+            <button type="button" onClick={() => setEditingItem(null)} className="text-muted-foreground hover:text-foreground text-sm">Закрыть</button>
+          </div>
+          <ScheduleFormFields
+            f={{ dayOfWeek: editingItem.dayOfWeek, timeSlot: editingItem.timeSlot, title: editingItem.title, genre: editingItem.genre, date: editingItem.date, isPremiere: editingItem.isPremiere, isLiveShow: editingItem.isLiveShow }}
+            set={(v) => setEditingItem({ ...editingItem, ...v })}
+          />
+          <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={saving} className="uppercase font-bold tracking-wider">
+              {saving ? "Сохранение..." : "Сохранить"}
             </Button>
           </div>
         </form>
@@ -523,22 +776,27 @@ function ScheduleTab() {
             ) : (
               <div className="divide-y">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between px-4 py-3 group hover:bg-muted/30 transition-colors">
+                  <div key={item.id} className={`flex items-center justify-between px-4 py-3 group hover:bg-muted/30 transition-colors ${item.isPremiere ? 'bg-amber-50 dark:bg-amber-500/5' : item.isLiveShow ? 'bg-red-50 dark:bg-red-500/5' : ''}`}>
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-bold text-primary min-w-[40px]">{item.timeSlot}</span>
                       <div>
-                        <p className="text-sm font-semibold leading-tight">{item.title}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold leading-tight">{item.title}</p>
+                          {item.isPremiere && <Star className="w-3 h-3 text-amber-500 fill-amber-500" />}
+                          {item.isLiveShow && <Radio className="w-3 h-3 text-red-500" />}
+                        </div>
                         {item.genre && <p className="text-xs text-muted-foreground">{item.genre}</p>}
+                        {item.date && <p className="text-[10px] text-muted-foreground/70">{item.date}</p>}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(item.id)}
-                      className="h-7 w-7 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" onClick={() => setEditingItem({ id: item.id, dayOfWeek: item.dayOfWeek, timeSlot: item.timeSlot, title: item.title, genre: item.genre ?? "", date: (item as any).date ?? "", isPremiere: item.isPremiere ?? false, isLiveShow: item.isLiveShow ?? false })} className="h-7 w-7 text-primary/60 hover:text-primary hover:bg-primary/10 rounded-full">
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="h-7 w-7 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-full">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

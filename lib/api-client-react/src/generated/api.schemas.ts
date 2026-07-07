@@ -181,6 +181,10 @@ export interface ScheduleItem {
   description?: string | null;
   /** @nullable */
   genre?: string | null;
+  /** @nullable */
+  date?: string | null;
+  isPremiere: boolean;
+  isLiveShow: boolean;
   createdAt?: string;
 }
 
@@ -192,6 +196,56 @@ export interface ScheduleItemInput {
   description?: string | null;
   /** @nullable */
   genre?: string | null;
+  /** @nullable */
+  date?: string | null;
+  isPremiere?: boolean;
+  isLiveShow?: boolean;
+}
+
+export interface Banner {
+  id: number;
+  title: string;
+  /** @nullable */
+  text?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  link?: string | null;
+  isEnabled: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface BannerInput {
+  title: string;
+  /** @nullable */
+  text?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  link?: string | null;
+  isEnabled?: boolean;
+  sortOrder?: number;
+}
+
+export interface UserRegisterInput {
+  /** @minLength 3 */
+  username: string;
+  /** @minLength 2 */
+  displayName: string;
+  /** @minLength 6 */
+  password: string;
+}
+
+export interface UserLoginInput {
+  username: string;
+  password: string;
+}
+
+export interface UserAuthResponse {
+  token: string;
+  username: string;
+  displayName: string;
 }
 
 export interface Article {
