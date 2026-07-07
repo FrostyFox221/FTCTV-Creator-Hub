@@ -496,51 +496,6 @@ function BannersTab() {
     }
   };
 
-  const BannerForm = ({ f, set, onSubmit, loading, btnLabel }: { f: typeof emptyForm; set: (v: typeof emptyForm) => void; onSubmit: (e: React.FormEvent) => void; loading: boolean; btnLabel: string }) => (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2 md:col-span-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок *</label>
-          <Input value={f.title} onChange={e => set({ ...f, title: e.target.value })} placeholder="Заголовок баннера" required />
-        </div>
-        <div className="flex flex-col gap-2 md:col-span-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Текст (необязательно)</label>
-          <Textarea value={f.text} onChange={e => set({ ...f, text: e.target.value })} rows={2} placeholder="Краткое описание" />
-        </div>
-        <div className="flex flex-col gap-2 md:col-span-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Фоновое изображение 16:9</label>
-          <div className="flex items-center gap-3">
-            <Input value={f.imageUrl} onChange={e => set({ ...f, imageUrl: e.target.value })} placeholder="https://... или загрузите файл" className="flex-1" />
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleUpload(e.target.files, url => set({ ...f, imageUrl: url }))} />
-            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={isUploading} className="gap-2 text-xs shrink-0">
-              <Upload className="w-4 h-4" /> {isUploading ? `${progress}%` : "Загрузить"}
-            </Button>
-          </div>
-          {f.imageUrl && <img src={f.imageUrl} alt="" className="mt-1 rounded-lg h-28 object-cover w-full" onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />}
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Ссылка (необязательно)</label>
-          <Input value={f.link} onChange={e => set({ ...f, link: e.target.value })} placeholder="https://..." />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Порядок отображения</label>
-          <Input type="number" value={f.sortOrder} onChange={e => set({ ...f, sortOrder: Number(e.target.value) })} min={0} />
-        </div>
-        <div className="flex items-center gap-3 col-span-full">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={f.isEnabled} onChange={e => set({ ...f, isEnabled: e.target.checked })} className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Активен</span>
-          </label>
-        </div>
-      </div>
-      <div className="flex justify-end pt-2">
-        <Button type="submit" disabled={loading} className="uppercase font-bold tracking-wider">
-          {loading ? "Сохранение..." : btnLabel}
-        </Button>
-      </div>
-    </form>
-  );
-
   return (
     <div className="flex flex-col">
       <div className="p-6 border-b flex justify-between items-center bg-secondary/30">

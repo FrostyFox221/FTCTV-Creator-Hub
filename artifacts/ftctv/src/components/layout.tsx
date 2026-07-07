@@ -37,7 +37,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <img src={logoPath} alt="FTCTV" className="h-8 w-auto invert dark:invert-0 dark:brightness-150 transition-all" />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+          <nav className="hidden lg:flex items-center gap-6">
             <Link href="/" className={`text-sm font-semibold uppercase tracking-wider transition-colors hover:text-primary ${location === '/' ? 'text-primary' : 'text-foreground/70'}`}>
               Главная
             </Link>
@@ -59,29 +59,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2 z-50">
+          <div className="flex items-center gap-1.5 ml-auto">
             <button onClick={toggleTheme} className="p-2.5 rounded-full text-foreground/70 hover:bg-secondary hover:text-foreground transition-colors" aria-label="Toggle theme">
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
             {session ? (
-              <div className="hidden sm:flex items-center gap-1">
-                <span className="text-xs font-semibold text-foreground/70 px-2">{session.displayName}</span>
+              <div className="hidden lg:flex items-center gap-1">
+                <span className="text-xs font-semibold text-foreground/70 px-1.5 max-w-[100px] truncate">{session.displayName}</span>
                 <button onClick={logout} className="p-2 rounded-full text-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors" title="Выйти">
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <Link href="/login" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors">
+              <Link href="/login" className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors">
                 <User className="w-3 h-3" /> Войти
               </Link>
             )}
 
-            <Link href="/admin" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors" title="Панель администратора">
+            <Link href="/admin" className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors" title="Панель администратора">
               <Lock className="w-3 h-3" /> Админ
             </Link>
 
-            <button className="md:hidden p-2.5 rounded-full text-foreground/70 hover:bg-secondary hover:text-foreground transition-colors ml-1" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <button className="lg:hidden p-2.5 rounded-full text-foreground/70 hover:bg-secondary hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
