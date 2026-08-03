@@ -436,15 +436,20 @@ function BannersTab() {
   const [editingBanner, setEditingBanner] = useState<null | { id: number } & typeof emptyForm>(null);
   const [saving, setSaving] = useState(false);
 
-  const fileRef = useRef<HTMLInputElement>(null);
   const { uploadFile, isUploading, progress } = useUpload({
     onError: (e) => toast({ title: "Ошибка загрузки", description: e.message, variant: "destructive" }),
   });
 
-  const handleUpload = async (files: FileList | null, onDone: (url: string) => void) => {
+  const handleUploadCreate = async (files: FileList | null) => {
     if (!files || !files[0]) return;
     const res = await uploadFile(files[0]);
-    if (res) onDone(`/api/storage${res.objectPath}`);
+    if (res) setForm(prev => ({ ...prev, imageUrl: `/api/storage${res.objectPath}` }));
+  };
+
+  const handleUploadEdit = async (files: FileList | null) => {
+    if (!files || !files[0]) return;
+    const res = await uploadFile(files[0]);
+    if (res) setEditingBanner(prev => prev ? { ...prev, imageUrl: `/api/storage${res.objectPath}` } : prev);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -511,7 +516,7 @@ function BannersTab() {
       {showForm && (
         <div className="p-6 border-b bg-card animate-in slide-in-from-top-4">
           <h3 className="font-bold uppercase text-xs text-primary tracking-wider mb-4">Новый баннер</h3>
-          <BannerForm f={form} set={setForm} onSubmit={handleCreate} loading={submitting} btnLabel="Добавить" />
+          <BannerForm f={form} set={setForm} onSubmit={handleCreate} loading={submitting} btnLabel="Добавить" onUpload={handleUploadCreate} isUploading={isUploading} progress={progress} />
         </div>
       )}
 
@@ -527,6 +532,9 @@ function BannersTab() {
             onSubmit={handleSaveEdit}
             loading={saving}
             btnLabel="Сохранить"
+            onUpload={handleUploadEdit}
+            isUploading={isUploading}
+            progress={progress}
           />
         </div>
       )}
@@ -571,6 +579,64 @@ function BannersTab() {
         )}
       </div>
     </div>
+  );
+}
+
+// BannerForm — must be defined OUTSIDE BannersTab to avoid remount on every keystroke
+type BannerFormData = { title: string; text: string; imageUrl: string; link: string; isEnabled: boolean; sortOrder: number };
+function BannerForm({ f, set, onSubmit, loading, btnLabel, onUpload, isUploading, progress }: {
+  f: BannerFormData;
+  set: (v: BannerFormData) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  loading: boolean;
+  btnLabel: string;
+  onUpload: (files: FileList | null) => void;
+  isUploading: boolean;
+  progress: number;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок *</label>
+          <Input placeholder="Заголовок баннера" value={f.title} onChange={e => set({ ...f, title: e.target.value })} required />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Ссылка (необязательно)</label>
+          <Input placeholder="https://..." value={f.link} onChange={e => set({ ...f, link: e.target.value })} />
+        </div>
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Текст (необязательно)</label>
+          <Input placeholder="Краткое описание" value={f.text} onChange={e => set({ ...f, text: e.target.value })} />
+        </div>
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Фоновое изображение (URL)</label>
+          <div className="flex gap-2">
+            <Input placeholder="https://... или загрузите файл" value={f.imageUrl} onChange={e => set({ ...f, imageUrl: e.target.value })} className="flex-1" />
+            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={isUploading} className="shrink-0 text-xs uppercase tracking-wider font-bold gap-1">
+              <Upload className="w-3.5 h-3.5" /> {isUploading ? `${progress}%` : "Загрузить"}
+            </Button>
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => onUpload(e.target.files)} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Порядок сортировки</label>
+          <Input type="number" value={f.sortOrder} onChange={e => set({ ...f, sortOrder: Number(e.target.value) })} />
+        </div>
+        <div className="flex items-center gap-3 pt-4">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" checked={f.isEnabled} onChange={e => set({ ...f, isEnabled: e.target.checked })} className="w-4 h-4 accent-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider">Активен</span>
+          </label>
+        </div>
+      </div>
+      <div className="flex justify-end pt-2">
+        <Button type="submit" disabled={loading} className="uppercase font-bold tracking-wider text-xs rounded-full">
+          {loading ? "Сохранение..." : btnLabel}
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -638,8 +704,23 @@ function ScheduleTab() {
     }
   };
 
+  // Вычисляем дату каждого дня текущей недели (Пн–Вс)
+  const weekDates = (() => {
+    const today = new Date();
+    const jsDay = today.getDay(); // 0=Вс, 1=Пн...
+    const mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    return DAYS.map((_, idx) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + idx);
+      return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+    });
+  })();
+
   const byDay = DAYS.map((name, idx) => ({
     name,
+    date: weekDates[idx],
     items: (items ?? []).filter((i) => i.dayOfWeek === idx).sort((a, b) => a.timeSlot.localeCompare(b.timeSlot)),
   }));
 
@@ -723,8 +804,9 @@ function ScheduleTab() {
       <div className="p-6 grid gap-4 md:grid-cols-2">
         {byDay.map(({ name, items }) => (
           <div key={name} className="rounded-xl border border-border bg-background overflow-hidden">
-            <div className="px-4 py-3 bg-secondary/40 border-b">
+            <div className="px-4 py-3 bg-secondary/40 border-b flex items-baseline gap-2">
               <h3 className="font-black text-xs uppercase tracking-widest">{name}</h3>
+              <span className="text-[10px] text-muted-foreground font-medium">— {date}</span>
             </div>
             {items.length === 0 ? (
               <p className="text-xs text-muted-foreground p-4">Нет программ</p>

@@ -88,7 +88,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 w-full bg-background border-b shadow-lg py-4 px-4 flex flex-col gap-4 z-40">
+          <div className="lg:hidden absolute top-16 left-0 w-full bg-background border-b shadow-lg py-4 px-4 flex flex-col gap-4 z-40">
             <Link href="/" onClick={() => setMobileMenuOpen(false)} className={`text-base font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>Главная</Link>
             <Link href="/live" onClick={() => setMobileMenuOpen(false)} className={`flex items-center justify-between text-base font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/live' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
               <span>Прямой эфир</span>
