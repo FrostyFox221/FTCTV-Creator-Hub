@@ -9,6 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: stories
+    description: Stories management
   - name: posts
     description: News posts
   - name: telegram
@@ -574,6 +576,60 @@ paths:
         "401":
           description: Unauthorized
 
+  /stories:
+    get:
+      operationId: getStories
+      tags: [stories]
+      summary: Get all stories
+      responses:
+        "200":
+          description: List of stories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Story"
+    post:
+      operationId: createStory
+      tags: [stories]
+      summary: Create a story (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoryInput"
+      responses:
+        "201":
+          description: Created story
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Story"
+
+  /stories/{id}:
+    delete:
+      operationId: deleteStory
+      tags: [stories]
+      summary: Delete a story (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+
   /banners:
     get:
       operationId: getBanners
@@ -748,6 +804,38 @@ paths:
       responses:
         "200":
           description: Maintenance status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceStatus"
+
+  /maintenance/start:
+    post:
+      operationId: startMaintenance
+      tags: [maintenance]
+      summary: Manually start maintenance mode (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceStartInput"
+      responses:
+        "200":
+          description: Maintenance started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceStatus"
+
+  /maintenance/stop:
+    post:
+      operationId: stopMaintenance
+      tags: [maintenance]
+      summary: Manually stop maintenance mode (admin)
+      responses:
+        "200":
+          description: Maintenance stopped
           content:
             application/json:
               schema:
@@ -971,6 +1059,16 @@ components:
         token:
           type: string
 
+    MaintenanceStartInput:
+      type: object
+      required: [endsAt]
+      properties:
+        endsAt:
+          type: string
+          description: ISO datetime when maintenance ends
+        message:
+          type: ["string", "null"]
+
     MaintenanceStatus:
       type: object
       required: [isActive, endsAt]
@@ -1011,6 +1109,8 @@ components:
           type: boolean
         isLiveShow:
           type: boolean
+        imageUrl:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -1034,6 +1134,38 @@ components:
           type: boolean
         isLiveShow:
           type: boolean
+        imageUrl:
+          type: ["string", "null"]
+
+    Story:
+      type: object
+      required: [id, imageUrl, sortOrder, createdAt]
+      properties:
+        id:
+          type: integer
+        imageUrl:
+          type: string
+        title:
+          type: ["string", "null"]
+        link:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+
+    StoryInput:
+      type: object
+      required: [imageUrl]
+      properties:
+        imageUrl:
+          type: string
+        title:
+          type: ["string", "null"]
+        link:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
 
     Banner:
       type: object

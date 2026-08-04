@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus, useGetSchedule, useGetBanners } from "@workspace/api-client-react";
+import { useAdminLogin, useGetPosts, useGetLivestream, useGetSettings, useGetTelegramStatus, useGetSchedule, useGetBanners, useGetMaintenanceStatus, useStartMaintenance, useStopMaintenance, useGetStories, useCreateStory, useDeleteStory } from "@workspace/api-client-react";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload, Edit2, Star, Image } from "lucide-react";
+import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload, Edit2, Star, Image, WrenchIcon, CircleDot } from "lucide-react";
 import { useUpload } from "@workspace/object-storage-web";
 import logoPath from "/logo.png";
 
@@ -128,9 +128,11 @@ export default function Admin() {
           {[
             { id: "posts", label: "Новости", icon: FileText },
             { id: "banners", label: "Реклама", icon: Image },
+            { id: "stories", label: "Истории", icon: CircleDot },
             { id: "schedule", label: "Программа передач", icon: Calendar },
             { id: "live", label: "Прямой эфир", icon: Radio },
             { id: "telegram", label: "Telegram", icon: MessageCircle },
+            { id: "maintenance", label: "Профилактика", icon: WrenchIcon },
             { id: "settings", label: "Настройки", icon: Settings }
           ].map(tab => (
             <TabsTrigger
@@ -147,9 +149,11 @@ export default function Admin() {
         <div className="bg-card border rounded-b-2xl rounded-tr-2xl shadow-sm min-h-[400px]">
           <TabsContent value="posts" className="m-0 p-0"><PostsTab /></TabsContent>
           <TabsContent value="banners" className="m-0 p-0"><BannersTab /></TabsContent>
+          <TabsContent value="stories" className="m-0 p-0"><StoriesTab /></TabsContent>
           <TabsContent value="schedule" className="m-0 p-0"><ScheduleTab /></TabsContent>
           <TabsContent value="live" className="m-0 p-0"><LiveTab /></TabsContent>
           <TabsContent value="telegram" className="m-0 p-0"><TelegramTab /></TabsContent>
+          <TabsContent value="maintenance" className="m-0 p-0"><MaintenanceTab /></TabsContent>
           <TabsContent value="settings" className="m-0 p-0"><SettingsTab /></TabsContent>
         </div>
       </Tabs>
@@ -642,16 +646,66 @@ function BannerForm({ f, set, onSubmit, loading, btnLabel, onUpload, isUploading
 
 const DAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
 
+interface ScheduleFormData {
+  dayOfWeek: number; timeSlot: string; title: string; genre: string;
+  date: string; imageUrl: string; isPremiere: boolean; isLiveShow: boolean;
+}
+
+function ScheduleFormFields({ f, set }: { f: ScheduleFormData; set: (v: ScheduleFormData) => void }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">День недели</label>
+        <select value={f.dayOfWeek} onChange={(e) => set({ ...f, dayOfWeek: Number(e.target.value) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+          {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+        </select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Время начала</label>
+        <Input type="time" value={f.timeSlot} onChange={(e) => set({ ...f, timeSlot: e.target.value })} required />
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Название программы</label>
+        <Input placeholder="Например: Утренние новости" value={f.title} onChange={(e) => set({ ...f, title: e.target.value })} required />
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Жанр (необязательно)</label>
+        <Input placeholder="Например: Информационная" value={f.genre} onChange={(e) => set({ ...f, genre: e.target.value })} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Дата выхода (необязательно)</label>
+        <Input placeholder="Например: 12 июля 2026" value={f.date} onChange={(e) => set({ ...f, date: e.target.value })} />
+      </div>
+      <div className="flex flex-col gap-2 md:col-span-2">
+        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Картинка программы (URL, необязательно)</label>
+        <Input placeholder="https://... или оставьте пустым" value={f.imageUrl} onChange={(e) => set({ ...f, imageUrl: e.target.value })} />
+      </div>
+      <div className="flex items-center gap-6 pt-2">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={f.isPremiere} onChange={e => set({ ...f, isPremiere: e.target.checked })} className="w-4 h-4 accent-amber-500" />
+          <Star className="w-3.5 h-3.5 text-amber-500" />
+          <span className="text-xs font-bold uppercase tracking-wider">Премьера</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={f.isLiveShow} onChange={e => set({ ...f, isLiveShow: e.target.checked })} className="w-4 h-4 accent-red-500" />
+          <Radio className="w-3.5 h-3.5 text-red-500" />
+          <span className="text-xs font-bold uppercase tracking-wider">Прямой эфир</span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
 function ScheduleTab() {
   const { data: items, refetch } = useGetSchedule({ query: { queryKey: ["admin_schedule"] } });
   const { fetchWithToken } = useAdminFetch();
   const { toast } = useToast();
 
-  const emptyForm = { dayOfWeek: 0, timeSlot: "", title: "", genre: "", date: "", isPremiere: false, isLiveShow: false };
+  const emptyForm: ScheduleFormData = { dayOfWeek: 0, timeSlot: "", title: "", genre: "", date: "", imageUrl: "", isPremiere: false, isLiveShow: false };
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<ScheduleFormData>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
-  const [editingItem, setEditingItem] = useState<null | { id: number } & typeof emptyForm>(null);
+  const [editingItem, setEditingItem] = useState<null | { id: number } & ScheduleFormData>(null);
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -661,7 +715,7 @@ function ScheduleTab() {
     try {
       await fetchWithToken("/api/schedule", {
         method: "POST",
-        body: JSON.stringify({ ...form, genre: form.genre || undefined, date: form.date || undefined }),
+        body: JSON.stringify({ ...form, genre: form.genre || undefined, date: form.date || undefined, imageUrl: form.imageUrl || undefined }),
       });
       toast({ title: "Программа добавлена" });
       setForm(emptyForm);
@@ -681,7 +735,7 @@ function ScheduleTab() {
     try {
       await fetchWithToken(`/api/schedule/${editingItem.id}`, {
         method: "PUT",
-        body: JSON.stringify({ dayOfWeek: editingItem.dayOfWeek, timeSlot: editingItem.timeSlot, title: editingItem.title, genre: editingItem.genre || undefined, date: editingItem.date || undefined, isPremiere: editingItem.isPremiere, isLiveShow: editingItem.isLiveShow }),
+        body: JSON.stringify({ dayOfWeek: editingItem.dayOfWeek, timeSlot: editingItem.timeSlot, title: editingItem.title, genre: editingItem.genre || undefined, date: editingItem.date || undefined, isPremiere: editingItem.isPremiere, isLiveShow: editingItem.isLiveShow, imageUrl: editingItem.imageUrl || undefined }),
       });
       toast({ title: "Программа обновлена" });
       setEditingItem(null);
@@ -724,45 +778,6 @@ function ScheduleTab() {
     items: (items ?? []).filter((i) => i.dayOfWeek === idx).sort((a, b) => a.timeSlot.localeCompare(b.timeSlot)),
   }));
 
-  const ScheduleFormFields = ({ f, set }: { f: typeof emptyForm; set: (v: typeof emptyForm) => void }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">День недели</label>
-        <select value={f.dayOfWeek} onChange={(e) => set({ ...f, dayOfWeek: Number(e.target.value) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-          {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
-        </select>
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Время начала</label>
-        <Input type="time" value={f.timeSlot} onChange={(e) => set({ ...f, timeSlot: e.target.value })} required />
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Название программы</label>
-        <Input placeholder="Например: Утренние новости" value={f.title} onChange={(e) => set({ ...f, title: e.target.value })} required />
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Жанр (необязательно)</label>
-        <Input placeholder="Например: Информационная" value={f.genre} onChange={(e) => set({ ...f, genre: e.target.value })} />
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Дата выхода (необязательно)</label>
-        <Input placeholder="Например: 12 июля 2026" value={f.date} onChange={(e) => set({ ...f, date: e.target.value })} />
-      </div>
-      <div className="flex items-center gap-6 pt-2">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" checked={f.isPremiere} onChange={e => set({ ...f, isPremiere: e.target.checked })} className="w-4 h-4 accent-amber-500" />
-          <Star className="w-3.5 h-3.5 text-amber-500" />
-          <span className="text-xs font-bold uppercase tracking-wider">Премьера</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" checked={f.isLiveShow} onChange={e => set({ ...f, isLiveShow: e.target.checked })} className="w-4 h-4 accent-red-500" />
-          <Radio className="w-3.5 h-3.5 text-red-500" />
-          <span className="text-xs font-bold uppercase tracking-wider">Прямой эфир</span>
-        </label>
-      </div>
-    </div>
-  );
-
   return (
     <div className="flex flex-col">
       <div className="p-6 border-b flex justify-between items-center bg-secondary/30">
@@ -790,7 +805,7 @@ function ScheduleTab() {
             <button type="button" onClick={() => setEditingItem(null)} className="text-muted-foreground hover:text-foreground text-sm">Закрыть</button>
           </div>
           <ScheduleFormFields
-            f={{ dayOfWeek: editingItem.dayOfWeek, timeSlot: editingItem.timeSlot, title: editingItem.title, genre: editingItem.genre, date: editingItem.date, isPremiere: editingItem.isPremiere, isLiveShow: editingItem.isLiveShow }}
+            f={{ dayOfWeek: editingItem.dayOfWeek, timeSlot: editingItem.timeSlot, title: editingItem.title, genre: editingItem.genre, date: editingItem.date, imageUrl: editingItem.imageUrl, isPremiere: editingItem.isPremiere, isLiveShow: editingItem.isLiveShow }}
             set={(v) => setEditingItem({ ...editingItem, ...v })}
           />
           <div className="flex justify-end pt-2">
@@ -802,11 +817,11 @@ function ScheduleTab() {
       )}
 
       <div className="p-6 grid gap-4 md:grid-cols-2">
-        {byDay.map(({ name, items }) => (
+        {byDay.map(({ name, date: dayDate, items }) => (
           <div key={name} className="rounded-xl border border-border bg-background overflow-hidden">
             <div className="px-4 py-3 bg-secondary/40 border-b flex items-baseline gap-2">
               <h3 className="font-black text-xs uppercase tracking-widest">{name}</h3>
-              <span className="text-[10px] text-muted-foreground font-medium">— {date}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">— {dayDate}</span>
             </div>
             {items.length === 0 ? (
               <p className="text-xs text-muted-foreground p-4">Нет программ</p>
@@ -827,7 +842,7 @@ function ScheduleTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" onClick={() => setEditingItem({ id: item.id, dayOfWeek: item.dayOfWeek, timeSlot: item.timeSlot, title: item.title, genre: item.genre ?? "", date: (item as any).date ?? "", isPremiere: item.isPremiere ?? false, isLiveShow: item.isLiveShow ?? false })} className="h-7 w-7 text-primary/60 hover:text-primary hover:bg-primary/10 rounded-full">
+                      <Button variant="ghost" size="icon" onClick={() => setEditingItem({ id: item.id, dayOfWeek: item.dayOfWeek, timeSlot: item.timeSlot, title: item.title, genre: item.genre ?? "", date: (item as any).date ?? "", imageUrl: (item as any).imageUrl ?? "", isPremiere: item.isPremiere ?? false, isLiveShow: item.isLiveShow ?? false })} className="h-7 w-7 text-primary/60 hover:text-primary hover:bg-primary/10 rounded-full">
                         <Edit2 className="w-3 h-3" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="h-7 w-7 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-full">
@@ -1146,6 +1161,230 @@ function SettingsTab() {
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function MaintenanceTab() {
+  const { data: status, refetch } = useGetMaintenanceStatus({ query: { queryKey: ["maintenance_admin"] } });
+  const startMutation = useStartMaintenance();
+  const stopMutation = useStopMaintenance();
+  const { toast } = useToast();
+
+  const [endsAtDate, setEndsAtDate] = useState("");
+  const [endsAtTime, setEndsAtTime] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleStart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!endsAtDate || !endsAtTime) {
+      toast({ title: "Укажите дату и время окончания", variant: "destructive" });
+      return;
+    }
+    const endsAt = new Date(`${endsAtDate}T${endsAtTime}:00`).toISOString();
+    try {
+      await startMutation.mutateAsync({ data: { endsAt, message: message || null } });
+      toast({ title: "Профилактика запущена" });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleStop = async () => {
+    if (!confirm("Завершить профилактику досрочно?")) return;
+    try {
+      await stopMutation.mutateAsync({});
+      toast({ title: "Профилактика завершена" });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const isActive = status?.isActive;
+
+  return (
+    <div className="flex flex-col">
+      <div className="p-6 border-b bg-secondary/30 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold uppercase tracking-tight">Режим профилактики</h2>
+          <p className="text-xs text-muted-foreground mt-1">Ручное управление режимом технических работ. Плановое расписание: каждое 18-е число 00:00–06:00 UTC+10.</p>
+        </div>
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider border ${isActive ? 'border-red-500/40 text-red-500 bg-red-500/10' : 'border-green-500/40 text-green-600 bg-green-500/10'}`}>
+          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></span>
+          {isActive ? 'Активна' : 'Сайт работает'}
+        </div>
+      </div>
+
+      {isActive && (
+        <div className="p-6 border-b bg-red-500/5 border-red-500/20 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-sm text-red-600">Профилактика активна</p>
+            {status?.endsAt && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Завершится: {new Date(status.endsAt).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+            {status?.message && <p className="text-xs text-muted-foreground mt-1 italic">"{status.message}"</p>}
+          </div>
+          <Button variant="outline" onClick={handleStop} disabled={stopMutation.isPending} className="border-red-500/40 text-red-600 hover:bg-red-500/10 uppercase font-bold text-xs tracking-wider rounded-full shrink-0">
+            {stopMutation.isPending ? "..." : "Завершить сейчас"}
+          </Button>
+        </div>
+      )}
+
+      <form onSubmit={handleStart} className="p-6 md:p-8 flex flex-col gap-5 max-w-lg">
+        <h3 className="font-black text-sm uppercase tracking-tight">Запустить профилактику вручную</h3>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Дата окончания</label>
+            <Input type="date" value={endsAtDate} onChange={e => setEndsAtDate(e.target.value)} required />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Время окончания</label>
+            <Input type="time" value={endsAtTime} onChange={e => setEndsAtTime(e.target.value)} required />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Сообщение (необязательно)</label>
+          <Input
+            placeholder="Например: Плановое обновление системы"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+          />
+        </div>
+
+        <div className="pt-2">
+          <Button type="submit" disabled={startMutation.isPending || isActive} className="uppercase font-bold tracking-wider rounded-full px-8 bg-amber-500 hover:bg-amber-600 text-white border-none">
+            {startMutation.isPending ? "Запуск..." : isActive ? "Уже активна" : "Запустить профилактику"}
+          </Button>
+          {isActive && <p className="text-xs text-muted-foreground mt-2">Сначала завершите текущую профилактику</p>}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function StoriesTab() {
+  const { data: stories, refetch } = useGetStories({ query: { queryKey: ["admin_stories"] } });
+  const createMutation = useCreateStory();
+  const deleteMutation = useDeleteStory();
+  const { toast } = useToast();
+  const { upload, isUploading } = useUpload();
+
+  const [showForm, setShowForm] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [link, setLink] = useState("");
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await upload(file, { public: true });
+      setImageUrl(url);
+      toast({ title: "Изображение загружено" });
+    } catch (err: any) {
+      toast({ title: "Ошибка загрузки", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!imageUrl) { toast({ title: "Добавьте изображение", variant: "destructive" }); return; }
+    try {
+      await createMutation.mutateAsync({ data: { imageUrl, title: title || null, link: link || null } });
+      toast({ title: "История добавлена" });
+      setImageUrl(""); setTitle(""); setLink(""); setShowForm(false);
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Удалить историю?")) return;
+    try {
+      await deleteMutation.mutateAsync({ id });
+      toast({ title: "История удалена" });
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <div className="p-6 border-b bg-secondary/30 flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold uppercase tracking-tight">Истории</h2>
+          <p className="text-xs text-muted-foreground mt-1">Круглые истории над лентой новостей (как в VK / Instagram)</p>
+        </div>
+        <Button onClick={() => setShowForm(!showForm)} className="uppercase font-bold tracking-wider text-xs rounded-full gap-1">
+          {showForm ? "Отмена" : <><Plus className="w-4 h-4" /> Добавить историю</>}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleCreate} className="p-6 border-b bg-card flex flex-col gap-4 max-w-md animate-in slide-in-from-top-4">
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Изображение *</label>
+            {imageUrl ? (
+              <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary/40">
+                <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => setImageUrl("")} className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity text-white text-xs">✕</button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-3 cursor-pointer bg-muted/50 hover:bg-muted border border-dashed border-border rounded-xl px-4 py-3 w-fit transition-colors">
+                <Upload className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{isUploading ? "Загрузка..." : "Загрузить фото"}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={isUploading} />
+              </label>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок (необязательно)</label>
+            <Input placeholder="Например: Новости" value={title} onChange={e => setTitle(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Ссылка (необязательно)</label>
+            <Input placeholder="https://..." value={link} onChange={e => setLink(e.target.value)} />
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={createMutation.isPending || isUploading} className="uppercase font-bold tracking-wider">
+              {createMutation.isPending ? "Сохранение..." : "Добавить"}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="p-6">
+        {!stories || stories.length === 0 ? (
+          <p className="text-muted-foreground text-sm py-8 text-center">Нет историй. Добавьте первую!</p>
+        ) : (
+          <div className="flex flex-wrap gap-5">
+            {stories.map(story => (
+              <div key={story.id} className="flex flex-col items-center gap-2 group relative">
+                <div className="p-[2px] rounded-full bg-gradient-to-tr from-primary via-pink-500 to-amber-400">
+                  <div className="p-[2px] rounded-full bg-card">
+                    <div className="w-16 h-16 rounded-full overflow-hidden">
+                      <img src={story.imageUrl} alt={story.title ?? ""} className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[10px] text-muted-foreground max-w-[64px] truncate text-center">{story.title ?? "История"}</span>
+                <button
+                  onClick={() => handleDelete(story.id)}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

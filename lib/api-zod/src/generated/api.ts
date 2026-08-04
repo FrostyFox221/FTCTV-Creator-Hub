@@ -271,6 +271,7 @@ export const GetScheduleResponseItem = zod.object({
   date: zod.string().nullish(),
   isPremiere: zod.boolean(),
   isLiveShow: zod.boolean(),
+  imageUrl: zod.string().nullish(),
   createdAt: zod.string().optional(),
 });
 export const GetScheduleResponse = zod.array(GetScheduleResponseItem);
@@ -287,6 +288,7 @@ export const CreateScheduleItemBody = zod.object({
   date: zod.string().nullish(),
   isPremiere: zod.boolean().optional(),
   isLiveShow: zod.boolean().optional(),
+  imageUrl: zod.string().nullish(),
 });
 
 /**
@@ -305,6 +307,7 @@ export const UpdateScheduleItemBody = zod.object({
   date: zod.string().nullish(),
   isPremiere: zod.boolean().optional(),
   isLiveShow: zod.boolean().optional(),
+  imageUrl: zod.string().nullish(),
 });
 
 export const UpdateScheduleItemResponse = zod.object({
@@ -317,6 +320,7 @@ export const UpdateScheduleItemResponse = zod.object({
   date: zod.string().nullish(),
   isPremiere: zod.boolean(),
   isLiveShow: zod.boolean(),
+  imageUrl: zod.string().nullish(),
   createdAt: zod.string().optional(),
 });
 
@@ -499,6 +503,40 @@ export const DeleteForumReplyResponse = zod.object({
 });
 
 /**
+ * @summary Get all stories
+ */
+export const GetStoriesResponseItem = zod.object({
+  id: zod.number(),
+  imageUrl: zod.string(),
+  title: zod.string().nullish(),
+  link: zod.string().nullish(),
+  sortOrder: zod.number(),
+  createdAt: zod.string(),
+});
+export const GetStoriesResponse = zod.array(GetStoriesResponseItem);
+
+/**
+ * @summary Create a story (admin)
+ */
+export const CreateStoryBody = zod.object({
+  imageUrl: zod.string(),
+  title: zod.string().nullish(),
+  link: zod.string().nullish(),
+  sortOrder: zod.number().optional(),
+});
+
+/**
+ * @summary Delete a story (admin)
+ */
+export const DeleteStoryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteStoryResponse = zod.object({
+  ok: zod.boolean().optional(),
+});
+
+/**
  * @summary Get all banners
  */
 export const GetBannersResponseItem = zod.object({
@@ -618,6 +656,29 @@ export const GetStorageObjectParams = zod.object({
  * @summary Get current maintenance status
  */
 export const GetMaintenanceStatusResponse = zod.object({
+  isActive: zod.boolean(),
+  endsAt: zod.string().nullable(),
+  message: zod.string().optional(),
+});
+
+/**
+ * @summary Manually start maintenance mode (admin)
+ */
+export const StartMaintenanceBody = zod.object({
+  endsAt: zod.string().describe("ISO datetime when maintenance ends"),
+  message: zod.string().nullish(),
+});
+
+export const StartMaintenanceResponse = zod.object({
+  isActive: zod.boolean(),
+  endsAt: zod.string().nullable(),
+  message: zod.string().optional(),
+});
+
+/**
+ * @summary Manually stop maintenance mode (admin)
+ */
+export const StopMaintenanceResponse = zod.object({
   isActive: zod.boolean(),
   endsAt: zod.string().nullable(),
   message: zod.string().optional(),

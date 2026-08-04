@@ -24,6 +24,7 @@ import type {
   ArticlesPage,
   Banner,
   BannerInput,
+  DeleteStory200,
   ForumReply,
   ForumReplyInput,
   ForumTopic,
@@ -34,6 +35,7 @@ import type {
   HealthStatus,
   Livestream,
   LivestreamInput,
+  MaintenanceStartInput,
   MaintenanceStatus,
   MessageResponse,
   Post,
@@ -43,6 +45,8 @@ import type {
   ScheduleItemInput,
   SiteSettings,
   SiteSettingsInput,
+  Story,
+  StoryInput,
   TelegramStatus,
   TelegramSyncInput,
   TelegramSyncResult,
@@ -2389,6 +2393,249 @@ export const useDeleteForumReply = <
 };
 
 /**
+ * @summary Get all stories
+ */
+export const getGetStoriesUrl = () => {
+  return `/api/stories`;
+};
+
+export const getStories = async (options?: RequestInit): Promise<Story[]> => {
+  return customFetch<Story[]>(getGetStoriesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStoriesQueryKey = () => {
+  return [`/api/stories`] as const;
+};
+
+export const getGetStoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getStories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetStoriesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStories>>> = ({
+    signal,
+  }) => getStories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStories>>
+>;
+export type GetStoriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all stories
+ */
+
+export function useGetStories<
+  TData = Awaited<ReturnType<typeof getStories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getStories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a story (admin)
+ */
+export const getCreateStoryUrl = () => {
+  return `/api/stories`;
+};
+
+export const createStory = async (
+  storyInput: StoryInput,
+  options?: RequestInit,
+): Promise<Story> => {
+  return customFetch<Story>(getCreateStoryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(storyInput),
+  });
+};
+
+export const getCreateStoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStory>>,
+    TError,
+    { data: BodyType<StoryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createStory>>,
+  TError,
+  { data: BodyType<StoryInput> },
+  TContext
+> => {
+  const mutationKey = ["createStory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createStory>>,
+    { data: BodyType<StoryInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createStory(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateStoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createStory>>
+>;
+export type CreateStoryMutationBody = BodyType<StoryInput>;
+export type CreateStoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a story (admin)
+ */
+export const useCreateStory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStory>>,
+    TError,
+    { data: BodyType<StoryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createStory>>,
+  TError,
+  { data: BodyType<StoryInput> },
+  TContext
+> => {
+  return useMutation(getCreateStoryMutationOptions(options));
+};
+
+/**
+ * @summary Delete a story (admin)
+ */
+export const getDeleteStoryUrl = (id: number) => {
+  return `/api/stories/${id}`;
+};
+
+export const deleteStory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeleteStory200> => {
+  return customFetch<DeleteStory200>(getDeleteStoryUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteStoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteStory>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteStory>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteStory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteStory>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteStory(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteStoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteStory>>
+>;
+
+export type DeleteStoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a story (admin)
+ */
+export const useDeleteStory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteStory>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteStory>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteStoryMutationOptions(options));
+};
+
+/**
  * @summary Get all banners
  */
 export const getGetBannersUrl = () => {
@@ -3139,3 +3386,170 @@ export function useGetMaintenanceStatus<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Manually start maintenance mode (admin)
+ */
+export const getStartMaintenanceUrl = () => {
+  return `/api/maintenance/start`;
+};
+
+export const startMaintenance = async (
+  maintenanceStartInput: MaintenanceStartInput,
+  options?: RequestInit,
+): Promise<MaintenanceStatus> => {
+  return customFetch<MaintenanceStatus>(getStartMaintenanceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(maintenanceStartInput),
+  });
+};
+
+export const getStartMaintenanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startMaintenance>>,
+    TError,
+    { data: BodyType<MaintenanceStartInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startMaintenance>>,
+  TError,
+  { data: BodyType<MaintenanceStartInput> },
+  TContext
+> => {
+  const mutationKey = ["startMaintenance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startMaintenance>>,
+    { data: BodyType<MaintenanceStartInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return startMaintenance(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartMaintenanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startMaintenance>>
+>;
+export type StartMaintenanceMutationBody = BodyType<MaintenanceStartInput>;
+export type StartMaintenanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Manually start maintenance mode (admin)
+ */
+export const useStartMaintenance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startMaintenance>>,
+    TError,
+    { data: BodyType<MaintenanceStartInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startMaintenance>>,
+  TError,
+  { data: BodyType<MaintenanceStartInput> },
+  TContext
+> => {
+  return useMutation(getStartMaintenanceMutationOptions(options));
+};
+
+/**
+ * @summary Manually stop maintenance mode (admin)
+ */
+export const getStopMaintenanceUrl = () => {
+  return `/api/maintenance/stop`;
+};
+
+export const stopMaintenance = async (
+  options?: RequestInit,
+): Promise<MaintenanceStatus> => {
+  return customFetch<MaintenanceStatus>(getStopMaintenanceUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStopMaintenanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopMaintenance>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof stopMaintenance>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["stopMaintenance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof stopMaintenance>>,
+    void
+  > = () => {
+    return stopMaintenance(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StopMaintenanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof stopMaintenance>>
+>;
+
+export type StopMaintenanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Manually stop maintenance mode (admin)
+ */
+export const useStopMaintenance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopMaintenance>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof stopMaintenance>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getStopMaintenanceMutationOptions(options));
+};

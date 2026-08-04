@@ -18,4 +18,6 @@ export interface ScheduleItemInput {
   date?: string | null;
   isPremiere?: boolean;
   isLiveShow?: boolean;
+  /** @nullable */
+  imageUrl?: string | null;
 }

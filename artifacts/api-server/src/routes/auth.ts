@@ -61,5 +61,4 @@ router.post("/auth/login", async (req, res) => {
   res.json({ token, username: user.username, displayName: user.displayName });
 });
 
-export { TOKEN_SECRET };
 export default router;

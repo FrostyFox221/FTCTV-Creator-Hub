@@ -161,6 +161,13 @@ export interface AdminAuthResult {
   token: string;
 }
 
+export interface MaintenanceStartInput {
+  /** ISO datetime when maintenance ends */
+  endsAt: string;
+  /** @nullable */
+  message?: string | null;
+}
+
 export interface MaintenanceStatus {
   isActive: boolean;
   /** @nullable */
@@ -185,6 +192,8 @@ export interface ScheduleItem {
   date?: string | null;
   isPremiere: boolean;
   isLiveShow: boolean;
+  /** @nullable */
+  imageUrl?: string | null;
   createdAt?: string;
 }
 
@@ -200,6 +209,28 @@ export interface ScheduleItemInput {
   date?: string | null;
   isPremiere?: boolean;
   isLiveShow?: boolean;
+  /** @nullable */
+  imageUrl?: string | null;
+}
+
+export interface Story {
+  id: number;
+  imageUrl: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  link?: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface StoryInput {
+  imageUrl: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  link?: string | null;
+  sortOrder?: number;
 }
 
 export interface Banner {
@@ -330,4 +361,8 @@ export type GetPostsParams = {
    * @nullable
    */
   search?: string | null;
+};
+
+export type DeleteStory200 = {
+  ok?: boolean;
 };

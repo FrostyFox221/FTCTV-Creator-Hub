@@ -12,6 +12,7 @@ export const scheduleTable = pgTable("schedule", {
   date: text("date"), // optional specific date e.g. "2026-07-10"
   isPremiere: boolean("is_premiere").notNull().default(false),
   isLiveShow: boolean("is_live_show").notNull().default(false),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

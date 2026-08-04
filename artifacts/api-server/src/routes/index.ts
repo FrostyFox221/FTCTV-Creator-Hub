@@ -12,6 +12,7 @@ import forumRouter from "./forum";
 import storageRouter from "./storage";
 import bannersRouter from "./banners";
 import authRouter from "./auth";
+import storiesRouter from "./stories";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(forumRouter);
 router.use(storageRouter);
 router.use(bannersRouter);
 router.use(authRouter);
+router.use(storiesRouter);
 
 export default router;

@@ -1,4 +1,5 @@
 import { useGetPosts, useGetLivestream, useGetBanners } from "@workspace/api-client-react";
+import StoriesReel from "@/components/stories-reel";
 import { Link } from "wouter";
 import { Search, Radio, MonitorPlay, ChevronRight, ChevronLeft, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -91,6 +92,7 @@ export default function Home() {
   return (
     <div className="w-full">
       <BannerCarousel />
+      <StoriesReel />
 
       {livestream?.isLive && (
         <section className="w-full bg-[#110e1b] border-b border-primary/20 relative overflow-hidden">

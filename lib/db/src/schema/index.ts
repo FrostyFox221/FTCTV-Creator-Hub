@@ -6,3 +6,4 @@ export * from "./articles";
 export * from "./forum";
 export * from "./banners";
 export * from "./users";
+export * from "./stories";

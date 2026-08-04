@@ -18,6 +18,10 @@ export const settingsTable = pgTable("site_settings", {
   bannerText: text("banner_text"),
   bannerImageUrl: text("banner_image_url"),
   bannerLink: text("banner_link"),
+  // Manual maintenance override
+  maintenanceManual: boolean("maintenance_manual").notNull().default(false),
+  maintenanceEndsAt: text("maintenance_ends_at"), // ISO string
+  maintenanceMessage: text("maintenance_message"),
 });
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).omit({ id: true });
