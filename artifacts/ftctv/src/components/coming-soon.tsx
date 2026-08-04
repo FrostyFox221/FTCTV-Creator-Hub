@@ -58,7 +58,7 @@ export default function ComingSoon() {
         </div>
 
         <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tight leading-none mb-4">
-          Становится
+          Становимся
           <br />
           <span className="bg-gradient-to-r from-primary via-pink-400 to-amber-400 bg-clip-text text-transparent">
             лучше
@@ -70,8 +70,6 @@ export default function ComingSoon() {
         <p className="text-zinc-400 text-base md:text-lg mt-6 mb-12 leading-relaxed font-light">
           Мы обновляем платформу, чтобы предложить вам&nbsp;
           <span className="text-white font-medium">лучший опыт просмотра</span>.
-          <br />
-          Скоро мы снова в эфире.
         </p>
 
         {/* Countdown */}
