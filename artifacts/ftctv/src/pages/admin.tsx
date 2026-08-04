@@ -1273,7 +1273,9 @@ function StoriesTab() {
   const createMutation = useCreateStory();
   const deleteMutation = useDeleteStory();
   const { toast } = useToast();
-  const { upload, isUploading } = useUpload();
+  const { uploadFile, isUploading } = useUpload({
+    onError: (e) => toast({ title: "Ошибка загрузки", description: e.message, variant: "destructive" }),
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
@@ -1283,12 +1285,10 @@ function StoriesTab() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const url = await upload(file, { public: true });
-      setImageUrl(url);
+    const res = await uploadFile(file);
+    if (res) {
+      setImageUrl(`/api/storage${res.objectPath}`);
       toast({ title: "Изображение загружено" });
-    } catch (err: any) {
-      toast({ title: "Ошибка загрузки", description: err.message, variant: "destructive" });
     }
   };
 
