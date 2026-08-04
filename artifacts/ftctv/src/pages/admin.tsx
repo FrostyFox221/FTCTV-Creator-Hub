@@ -1270,8 +1270,7 @@ function MaintenanceTab() {
 
 function StoriesTab() {
   const { data: stories, refetch } = useGetStories({ query: { queryKey: ["admin_stories"] } });
-  const createMutation = useCreateStory();
-  const deleteMutation = useDeleteStory();
+  const { fetchWithToken } = useAdminFetch();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useUpload({
     onError: (e) => toast({ title: "Ошибка загрузки", description: e.message, variant: "destructive" }),
@@ -1281,6 +1280,7 @@ function StoriesTab() {
   const [imageUrl, setImageUrl] = useState("");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1295,20 +1295,21 @@ function StoriesTab() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!imageUrl) { toast({ title: "Добавьте изображение", variant: "destructive" }); return; }
+    setSubmitting(true);
     try {
-      await createMutation.mutateAsync({ data: { imageUrl, title: title || null, link: link || null } });
+      await fetchWithToken("/api/stories", { method: "POST", body: JSON.stringify({ imageUrl, title: title || null, link: link || null }) });
       toast({ title: "История добавлена" });
       setImageUrl(""); setTitle(""); setLink(""); setShowForm(false);
       refetch();
     } catch (err: any) {
       toast({ title: "Ошибка", description: err.message, variant: "destructive" });
-    }
+    } finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить историю?")) return;
     try {
-      await deleteMutation.mutateAsync({ id });
+      await fetchWithToken(`/api/stories/${id}`, { method: "DELETE" });
       toast({ title: "История удалена" });
       refetch();
     } catch (err: any) {
