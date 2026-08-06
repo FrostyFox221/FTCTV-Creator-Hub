@@ -1355,8 +1355,8 @@ function StoriesTab() {
             <Input placeholder="https://..." value={link} onChange={e => setLink(e.target.value)} />
           </div>
           <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={createMutation.isPending || isUploading} className="uppercase font-bold tracking-wider">
-              {createMutation.isPending ? "Сохранение..." : "Добавить"}
+            <Button type="submit" disabled={submitting || isUploading} className="uppercase font-bold tracking-wider">
+              {submitting ? "Сохранение..." : "Добавить"}
             </Button>
           </div>
         </form>
