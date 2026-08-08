@@ -90,7 +90,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
             {session ? (
               <div className="hidden md:flex items-center gap-1">
-                <span className="text-xs font-semibold text-foreground/70 px-1.5 max-w-[90px] truncate">{session.displayName}</span>
+                <Link href="/profile" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors">
+                  <User className="w-3 h-3" /> {session.displayName}
+                </Link>
                 <button onClick={logout} className="p-2 rounded-full text-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors" title="Выйти">
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -136,10 +138,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
             <div className="border-t pt-3 flex flex-col gap-2">
               {session ? (
-                <div className="flex items-center justify-between p-3">
-                  <span className="text-sm font-semibold">{session.displayName}</span>
-                  <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="text-xs text-destructive font-bold uppercase tracking-wider">Выйти</button>
-                </div>
+                <>
+                  <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 text-foreground/80 hover:text-foreground"><User className="w-4 h-4" /> {session.displayName}</Link>
+                  <div className="flex items-center justify-between p-3">
+                    <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="text-xs text-destructive font-bold uppercase tracking-wider">Выйти</button>
+                  </div>
+                </>
               ) : (
                 <>
                   <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 text-foreground/80 hover:text-foreground"><User className="w-4 h-4" /> Войти</Link>

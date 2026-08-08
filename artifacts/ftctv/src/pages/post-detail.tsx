@@ -1,7 +1,12 @@
 import { useGetPost } from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Clock, MonitorPlay, Share2 } from "lucide-react";
+import { ArrowLeft, Clock, MonitorPlay, Share2, Heart, Send, Trash2, User } from "lucide-react";
 import { formatDate, renderMarkdownBold } from "@/lib/format";
+import { getImageUrl } from "@/lib/image-url";
+import { useState, useEffect } from "react";
+import { useUserAuth } from "@/hooks/use-user-auth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function PostDetail() {
   const params = useParams();
@@ -100,7 +105,7 @@ export default function PostDetail() {
 
       {post.images?.[0] && !post.videoUrl && (
         <div className="mb-12 w-full max-h-[600px] rounded-2xl overflow-hidden bg-muted shadow-lg border border-border/50 flex justify-center">
-          <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover" />
+          <img src={getImageUrl(post.images[0])} alt={post.title} className="w-full h-full object-cover" />
         </div>
       )}
 
@@ -115,13 +120,183 @@ export default function PostDetail() {
           <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight mb-8">Фотогалерея</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             {post.images.slice(1).map((img, i) => (
-              <a key={i} href={img} target="_blank" rel="noreferrer" className="block aspect-square rounded-xl overflow-hidden bg-muted hover:opacity-90 hover:shadow-md transition-all border border-border/50">
-                <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+              <a key={i} href={getImageUrl(img)} target="_blank" rel="noreferrer" className="block aspect-square rounded-xl overflow-hidden bg-muted hover:opacity-90 hover:shadow-md transition-all border border-border/50">
+                <img src={getImageUrl(img)} alt="" className="w-full h-full object-cover" loading="lazy" />
               </a>
             ))}
           </div>
         </div>
       )}
+      {/* Reactions & Comments Section */}
+      <ReactionsAndComments postId={id} />
     </article>
+  );
+}
+
+interface Comment {
+  id: number;
+  postId: number;
+  userId: number;
+  content: string;
+  createdAt: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+function ReactionsAndComments({ postId }: { postId: number }) {
+  const { session, isLoggedIn } = useUserAuth();
+  const [reactionCount, setReactionCount] = useState(0);
+  const [userReacted, setUserReacted] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const headers: Record<string, string> = {};
+  if (session) headers["Authorization"] = `Bearer ${session.token}`;
+
+  // Load reactions
+  useEffect(() => {
+    fetch(`/api/posts/${postId}/reactions`, { headers })
+      .then(r => r.json())
+      .then(data => {
+        setReactionCount(data.count ?? 0);
+        setUserReacted(data.userReacted ?? false);
+      })
+      .catch(() => {});
+  }, [postId]);
+
+  // Load comments
+  useEffect(() => {
+    fetch(`/api/posts/${postId}/comments`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setComments(data); })
+      .catch(() => {});
+  }, [postId]);
+
+  const toggleReaction = async () => {
+    if (!isLoggedIn) return;
+    const res = await fetch(`/api/posts/${postId}/reactions`, { method: "POST", headers });
+    const data = await res.json();
+    if (data.reacted) {
+      setUserReacted(true);
+      setReactionCount(c => c + 1);
+    } else {
+      setUserReacted(false);
+      setReactionCount(c => Math.max(0, c - 1));
+    }
+  };
+
+  const submitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoggedIn || !commentText.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentText.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setComments(prev => [{ ...data, avatarUrl: session?.avatarUrl || null }, ...prev]);
+        setCommentText("");
+      }
+    } catch {}
+    setSubmitting(false);
+  };
+
+  const deleteComment = async (id: number) => {
+    const res = await fetch(`/api/comments/${id}`, { method: "DELETE", headers });
+    if (res.ok) setComments(prev => prev.filter(c => c.id !== id));
+  };
+
+  return (
+    <div className="mt-16 pt-10 border-t border-border">
+      {/* Reaction button */}
+      <div className="flex items-center gap-3 mb-8">
+        <button
+          onClick={toggleReaction}
+          disabled={!isLoggedIn}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border font-bold text-sm transition-all ${
+            userReacted
+              ? "bg-red-500/10 border-red-500/30 text-red-500"
+              : "border-border text-muted-foreground hover:border-red-500/30 hover:text-red-500"
+          } ${!isLoggedIn ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          title={isLoggedIn ? "Нравится" : "Войдите, чтобы поставить реакцию"}
+        >
+          <Heart className={`w-4 h-4 ${userReacted ? "fill-current" : ""}`} />
+          {reactionCount > 0 && <span>{reactionCount}</span>}
+        </button>
+        {!isLoggedIn && <span className="text-xs text-muted-foreground">Войдите, чтобы оставить реакцию</span>}
+      </div>
+
+      {/* Comments */}
+      <h3 className="text-xl font-black uppercase tracking-tight mb-6">
+        Комментарии {comments.length > 0 && `(${comments.length})`}
+      </h3>
+
+      {isLoggedIn && (
+        <form onSubmit={submitComment} className="flex gap-3 mb-8">
+          <div className="w-9 h-9 rounded-full bg-muted border flex-shrink-0 flex items-center justify-center overflow-hidden">
+            {session?.avatarUrl ? (
+              <img src={session.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex-1 flex gap-2">
+            <Input
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              placeholder="Напишите комментарий..."
+              maxLength={1000}
+              className="flex-1"
+            />
+            <Button type="submit" size="sm" disabled={submitting || !commentText.trim()}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {!isLoggedIn && (
+        <p className="text-sm text-muted-foreground mb-8">
+          <Link href="/login" className="text-primary font-semibold hover:underline">Войдите</Link>, чтобы оставить комментарий.
+        </p>
+      )}
+
+      {comments.length === 0 && (
+        <p className="text-sm text-muted-foreground">Пока нет комментариев. Будьте первым!</p>
+      )}
+
+      <div className="space-y-4">
+        {comments.map(comment => (
+          <div key={comment.id} className="flex gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50">
+            <div className="w-8 h-8 rounded-full bg-muted border flex-shrink-0 flex items-center justify-center overflow-hidden">
+              {comment.avatarUrl ? (
+                <img src={comment.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-sm font-bold truncate">{comment.displayName || comment.username}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(comment.createdAt).toLocaleDateString("ru-RU")}</span>
+                  {session?.username === comment.username && (
+                    <button onClick={() => deleteComment(comment.id)} className="text-muted-foreground hover:text-destructive transition-colors" title="Удалить">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-sm text-foreground/80 break-words">{comment.content}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

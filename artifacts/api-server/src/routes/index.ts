@@ -13,6 +13,11 @@ import storageRouter from "./storage";
 import bannersRouter from "./banners";
 import authRouter from "./auth";
 import storiesRouter from "./stories";
+import commentsRouter from "./comments";
+import reactionsRouter from "./reactions";
+import profileRouter from "./profile";
+import imageProxyRouter from "./image-proxy";
+import uploadRouter from "./upload";
 
 const router: IRouter = Router();
 
@@ -30,5 +35,10 @@ router.use(storageRouter);
 router.use(bannersRouter);
 router.use(authRouter);
 router.use(storiesRouter);
+router.use(commentsRouter);
+router.use(reactionsRouter);
+router.use(profileRouter);
+router.use(imageProxyRouter);
+router.use(uploadRouter);
 
 export default router;

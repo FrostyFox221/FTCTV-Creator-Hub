@@ -24,7 +24,7 @@ export function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Ошибка входа");
-      login({ token: data.token, username: data.username, displayName: data.displayName });
+      login({ token: data.token, username: data.username, displayName: data.displayName, avatarUrl: data.avatarUrl });
       toast({ title: `Добро пожаловать, ${data.displayName}` });
       navigate("/");
     } catch (e: any) {
@@ -101,7 +101,7 @@ export function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Ошибка регистрации");
-      login({ token: data.token, username: data.username, displayName: data.displayName });
+      login({ token: data.token, username: data.username, displayName: data.displayName, avatarUrl: data.avatarUrl });
       toast({ title: `Аккаунт создан! Добро пожаловать, ${data.displayName}` });
       navigate("/");
     } catch (e: any) {

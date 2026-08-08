@@ -5,8 +5,8 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 const router = Router();
 
-function makeToken(username: string, displayName: string): string {
-  const payload = { username, displayName, iat: Date.now() };
+function makeToken(username: string, displayName: string, userId: number): string {
+  const payload = { username, displayName, userId, iat: Date.now() };
   return Buffer.from(JSON.stringify(payload)).toString("base64url");
 }
 
@@ -34,8 +34,9 @@ router.post("/auth/register", async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const [user] = await db.insert(usersTable).values({ username, displayName, passwordHash }).returning();
 
-  const token = makeToken(user.username, user.displayName);
-  res.status(201).json({ token, username: user.username, displayName: user.displayName });
+
+  const token = makeToken(user.username, user.displayName, user.id);
+  res.status(201).json({ token, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl });
 });
 
 router.post("/auth/login", async (req, res) => {
@@ -57,8 +58,8 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
 
-  const token = makeToken(user.username, user.displayName);
-  res.json({ token, username: user.username, displayName: user.displayName });
+  const token = makeToken(user.username, user.displayName, user.id);
+  res.json({ token, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl });
 });
 
 export default router;

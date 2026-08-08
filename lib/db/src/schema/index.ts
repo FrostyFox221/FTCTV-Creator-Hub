@@ -7,3 +7,5 @@ export * from "./forum";
 export * from "./banners";
 export * from "./users";
 export * from "./stories";
+export * from "./comments";
+export * from "./reactions";

@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Search, Radio, MonitorPlay, ChevronRight, ChevronLeft, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { formatDate } from "@/lib/format";
+import { getImageUrl } from "@/lib/image-url";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -27,7 +28,7 @@ function BannerCarousel() {
       <div className="relative w-full aspect-[16/9] max-h-[480px] overflow-hidden bg-zinc-900">
         {b.imageUrl ? (
           <img
-            src={b.imageUrl}
+            src={getImageUrl(b.imageUrl)}
             alt={b.title}
             className="w-full h-full object-cover transition-opacity duration-700"
             onError={e => { (e.target as HTMLImageElement).style.opacity = "0"; }}
@@ -132,7 +133,7 @@ export default function Home() {
               <div className="flex flex-col md:flex-row">
                 <div className="w-full md:w-3/5 lg:w-2/3 aspect-[16/9] md:aspect-auto relative bg-muted flex-shrink-0">
                   {featuredPost.images?.[0] ? (
-                    <img src={featuredPost.images[0]} alt={featuredPost.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                    <img src={getImageUrl(featuredPost.images[0])} alt={featuredPost.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-secondary/50">
                       <img src="/logo.png" alt="FTCTV" className="h-16 opacity-10 grayscale" />
@@ -205,7 +206,7 @@ export default function Home() {
                 <Link key={post.id} href={`/post/${post.id}`} className="group flex flex-col h-full bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                   <div className="relative overflow-hidden aspect-[4/3] bg-muted w-full shrink-0">
                     {post.images?.[0] ? (
-                      <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                      <img src={getImageUrl(post.images[0])} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-secondary/30 relative">
                         <img src="/logo.png" alt="FTCTV" className="h-12 opacity-10 grayscale absolute" />

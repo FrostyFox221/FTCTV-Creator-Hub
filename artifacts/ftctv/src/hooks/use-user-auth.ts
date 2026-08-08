@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 export interface UserSession {
   username: string;
   displayName: string;
+  avatarUrl?: string | null;
   token: string;
 }
 

@@ -1269,7 +1269,7 @@ function MaintenanceTab() {
 }
 
 function StoriesTab() {
-  const { data: stories, refetch } = useGetStories({ query: { queryKey: ["admin_stories"] } });
+  const { data: stories, refetch, isLoading, isError, error } = useGetStories({ query: { queryKey: ["admin_stories"], retry: false } });
   const { fetchWithToken } = useAdminFetch();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useUpload({
@@ -1316,6 +1316,9 @@ function StoriesTab() {
       toast({ title: "Ошибка", description: err.message, variant: "destructive" });
     }
   };
+
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Загрузка историй...</div>;
+  if (isError) return <div className="p-8 text-center text-destructive">Ошибка загрузки историй: {error?.message ?? "Неизвестная ошибка"}</div>;
 
   return (
     <div className="flex flex-col">
