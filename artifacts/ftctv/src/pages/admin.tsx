@@ -8,7 +8,7 @@ import { formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload, Edit2, Star, Image, WrenchIcon, CircleDot } from "lucide-react";
-import { useUpload } from "@workspace/object-storage-web";
+import { useUpload } from "@workspace/object-storage-web/use-upload";
 import logoPath from "/logo.png";
 
 export default function Admin() {

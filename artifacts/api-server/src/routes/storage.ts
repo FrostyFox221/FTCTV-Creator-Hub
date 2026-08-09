@@ -1,42 +1,34 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { Readable } from "stream";
+import { randomUUID } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import {
-  RequestUploadUrlBody,
-  RequestUploadUrlResponse,
-} from "@workspace/api-zod";
-import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
+  LocalStorageService,
+  ObjectNotFoundError,
+  localStorageService,
+} from "../lib/objectStorage";
 
 const router: IRouter = Router();
-const objectStorageService = new ObjectStorageService();
 
 /**
  * POST /storage/uploads/request-url
  *
- * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
+ * Instead of returning a presigned URL (Replit/GCS),
+ * we now return an internal upload endpoint that accepts the file directly.
+ * The client should PUT the file to the returned uploadURL.
  */
 router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
-  const parsed = RequestUploadUrlBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Missing or invalid required fields" });
-    return;
-  }
-
   try {
-    const { name, size, contentType } = parsed.data;
+    const { objectId, objectPath } = await localStorageService.generateUploadId();
 
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    // Return a local PUT URL for the client to upload to
+    const uploadURL = `/api/storage/put/${objectId}`;
 
-    res.json(
-      RequestUploadUrlResponse.parse({
-        uploadURL,
-        objectPath,
-        metadata: { name, size, contentType },
-      }),
-    );
+    res.json({
+      uploadURL,
+      objectPath,
+      metadata: req.body,
+    });
   } catch (error) {
     req.log.error({ err: error }, "Error generating upload URL");
     res.status(500).json({ error: "Failed to generate upload URL" });
@@ -44,87 +36,120 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
 });
 
 /**
- * GET /storage/public-objects/*
+ * PUT /storage/put/:objectId
  *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * These are unconditionally public — no authentication or ACL checks.
- * IMPORTANT: Always provide this endpoint when object storage is set up.
+ * Accepts the raw file body and saves it to disk.
+ * This replaces the old presigned URL upload to GCS.
  */
-router.get("/storage/public-objects/*filePath", async (req: Request, res: Response) => {
+router.put("/storage/put/:objectId", async (req: Request, res: Response) => {
   try {
-    const raw = req.params.filePath;
-    const filePath = Array.isArray(raw) ? raw.join("/") : raw;
-    const file = await objectStorageService.searchPublicObject(filePath);
-    if (!file) {
-      res.status(404).json({ error: "File not found" });
+    const { objectId } = req.params;
+    if (!objectId || objectId.includes("..") || objectId.includes("/")) {
+      res.status(400).json({ error: "Invalid object ID" });
       return;
     }
 
-    const response = await objectStorageService.downloadObject(file);
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-
-    if (response.body) {
-      const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
-      nodeStream.pipe(res);
-    } else {
-      res.end();
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
+    const data = Buffer.concat(chunks);
+
+    if (data.length === 0) {
+      res.status(400).json({ error: "Empty body" });
+      return;
+    }
+
+    // Max 10MB
+    if (data.length > 10 * 1024 * 1024) {
+      res.status(413).json({ error: "File too large (max 10MB)" });
+      return;
+    }
+
+    // Detect extension from Content-Type
+    const contentType = req.headers["content-type"] || "";
+    const extMap: Record<string, string> = {
+      "image/jpeg": ".jpg",
+      "image/png": ".png",
+      "image/gif": ".gif",
+      "image/webp": ".webp",
+      "image/svg+xml": ".svg",
+      "video/mp4": ".mp4",
+      "video/webm": ".webm",
+      "application/pdf": ".pdf",
+    };
+    const ext = extMap[contentType] || "";
+
+    await localStorageService.saveFile(objectId, data, ext);
+
+    res.status(200).json({ ok: true });
   } catch (error) {
-    req.log.error({ err: error }, "Error serving public object");
-    res.status(500).json({ error: "Failed to serve public object" });
+    req.log.error({ err: error }, "Error saving uploaded file");
+    res.status(500).json({ error: "Upload failed" });
   }
 });
 
 /**
  * GET /storage/objects/*
  *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
+ * Serve uploaded files from local disk.
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
-    const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
-    const objectPath = `/objects/${wildcardPath}`;
-    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+    const objectName = Array.isArray(raw) ? raw.join("/") : raw;
 
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
-
-    const response = await objectStorageService.downloadObject(objectFile);
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-
-    if (response.body) {
-      const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
-      nodeStream.pipe(res);
-    } else {
-      res.end();
+    if (!objectName || objectName.includes("..")) {
+      res.status(400).json({ error: "Invalid path" });
+      return;
     }
+
+    const data = await localStorageService.readFile(objectName);
+    const mimeType = localStorageService.getMimeType(objectName);
+
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("Content-Length", data.length);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(data);
   } catch (error) {
     if (error instanceof ObjectNotFoundError) {
-      req.log.warn({ err: error }, "Object not found");
-      res.status(404).json({ error: "Object not found" });
+      res.status(404).json({ error: "File not found" });
       return;
     }
     req.log.error({ err: error }, "Error serving object");
-    res.status(500).json({ error: "Failed to serve object" });
+    res.status(500).json({ error: "Failed to serve file" });
+  }
+});
+
+/**
+ * GET /storage/public-objects/*
+ *
+ * Same as /storage/objects/* — on local storage there's no distinction.
+ */
+router.get("/storage/public-objects/*filePath", async (req: Request, res: Response) => {
+  try {
+    const raw = req.params.filePath;
+    const objectName = Array.isArray(raw) ? raw.join("/") : raw;
+
+    if (!objectName || objectName.includes("..")) {
+      res.status(400).json({ error: "Invalid path" });
+      return;
+    }
+
+    const data = await localStorageService.readFile(objectName);
+    const mimeType = localStorageService.getMimeType(objectName);
+
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("Content-Length", data.length);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(data);
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      res.status(404).json({ error: "File not found" });
+      return;
+    }
+    req.log.error({ err: error }, "Error serving public object");
+    res.status(500).json({ error: "Failed to serve file" });
   }
 });
 

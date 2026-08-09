@@ -47,3 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Uploads (keep .gitkeep only)
+artifacts/api-server/uploads/*
+!artifacts/api-server/uploads/.gitkeep
