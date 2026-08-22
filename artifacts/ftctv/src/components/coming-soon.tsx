@@ -9,8 +9,8 @@ const SHOW_UNTIL = new Date("2026-09-01T00:00:00+10:00");
 const RETURN_DATE = new Date("2026-09-01T00:00:00+10:00");
 
 export function shouldShowComingSoon(): boolean {
-  const now = new Date();
-  return now >= SHOW_FROM && now < SHOW_UNTIL;
+  // Placeholder disabled — site is live
+  return false;
 }
 
 function pad(n: number) {
