@@ -39,11 +39,11 @@ export default function MediaForum() {
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <Link href="/media" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary">FTC Media</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">FTCTV</p>
             <h1 className="text-3xl font-black uppercase tracking-wide">Форум</h1>
           </div>
         </div>

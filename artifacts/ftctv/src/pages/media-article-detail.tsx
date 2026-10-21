@@ -2,6 +2,7 @@ import { useGetArticle } from "@workspace/api-client-react";
 import { Link, useParams } from "wouter";
 import { ChevronLeft, User, Calendar } from "lucide-react";
 import { formatDate } from "@/lib/format";
+import DOMPurify from "dompurify";
 
 export default function MediaArticleDetail() {
   const { id } = useParams<{ id: string }>();
@@ -55,9 +56,36 @@ export default function MediaArticleDetail() {
         </span>
       </div>
 
-      <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed whitespace-pre-wrap text-foreground/90">
-        {article.content}
-      </div>
+      {article.mediaUrl && (
+        (/\.(mp4|webm)/i.test(article.mediaUrl) || /type=video/i.test(article.mediaUrl)) ? (
+          <video
+            src={article.mediaUrl}
+            controls
+            className="w-full rounded-lg mb-8 bg-black"
+          />
+        ) : (
+          <img
+            src={article.mediaUrl}
+            alt={article.title}
+            className="w-full rounded-lg mb-8 object-cover"
+          />
+        )
+      )}
+
+      <div
+        className="prose prose-sm dark:prose-invert max-w-none leading-relaxed text-foreground/90 [&_table]:border-collapse [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:bg-muted [&_th]:font-semibold [&_table]:my-4"
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(article.content, {
+            ALLOWED_TAGS: [
+              "p", "br", "strong", "b", "em", "i", "u",
+              "h2", "h3", "ul", "ol", "li", "hr",
+              "table", "thead", "tbody", "tr", "th", "td",
+              "blockquote", "pre", "code",
+            ],
+            ALLOWED_ATTR: ["colspan", "rowspan"],
+          }),
+        }}
+      />
     </div>
   );
 }

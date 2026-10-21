@@ -358,6 +358,14 @@ export async function customFetch<T = unknown>(
     }
   }
 
+  // Attach admin token from localStorage (browser only)
+  if (typeof localStorage !== "undefined" && !headers.has("x-admin-token")) {
+    const adminToken = localStorage.getItem("ftctv_admin_token");
+    if (adminToken) {
+      headers.set("x-admin-token", adminToken);
+    }
+  }
+
   const requestInfo = { method, url: resolveUrl(input) };
 
   const response = await fetch(input, { ...init, method, headers });

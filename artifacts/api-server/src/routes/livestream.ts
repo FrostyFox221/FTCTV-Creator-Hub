@@ -18,7 +18,8 @@ function verifyAdmin(req: any): boolean {
 async function ensureLivestream() {
   const existing = await db.select().from(livestreamTable).limit(1);
   if (existing.length === 0) {
-    const [row] = await db.insert(livestreamTable).values({ isLive: false }).returning();
+    const [{ id: newId }] = await db.insert(livestreamTable).values({ isLive: false }).$returningId();
+    const [row] = await db.select().from(livestreamTable).where(eq(livestreamTable.id, newId));
     return row;
   }
   return existing[0];
@@ -27,7 +28,7 @@ async function ensureLivestream() {
 router.get("/livestream", async (req, res) => {
   try {
     const ls = await ensureLivestream();
-    res.json({
+    return res.json({
       id: ls.id,
       isLive: ls.isLive,
       streamUrl: ls.streamUrl ?? null,
@@ -37,7 +38,7 @@ router.get("/livestream", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Livestream get error");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -46,11 +47,11 @@ router.put("/livestream", async (req, res) => {
   try {
     const body = UpdateLivestreamBody.parse(req.body);
     const ls = await ensureLivestream();
-    const [updated] = await db.update(livestreamTable)
+    await db.update(livestreamTable)
       .set({ ...body, updatedAt: new Date() })
-      .where(eq(livestreamTable.id, ls.id))
-      .returning();
-    res.json({
+      .where(eq(livestreamTable.id, ls.id));
+    const [updated] = await db.select().from(livestreamTable).where(eq(livestreamTable.id, ls.id));
+    return res.json({
       id: updated.id,
       isLive: updated.isLive,
       streamUrl: updated.streamUrl ?? null,
@@ -60,7 +61,7 @@ router.put("/livestream", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Livestream update error");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

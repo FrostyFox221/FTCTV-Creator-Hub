@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { sendRegistrationNotification } from "../utils/mailer.js";
 const router = Router();
 
 function makeToken(username: string, displayName: string, userId: number): string {
@@ -11,7 +12,7 @@ function makeToken(username: string, displayName: string, userId: number): strin
 }
 
 router.post("/auth/register", async (req, res) => {
-  const { username, displayName, password } = req.body ?? {};
+  const { username, displayName, password, email } = req.body ?? {};
   if (typeof username !== "string" || username.length < 3 || username.length > 30 || !/^[a-zA-Z0-9_]+$/.test(username)) {
     res.status(400).json({ message: "Логин: 3–30 символов, только латиница, цифры и _" });
     return;
@@ -24,6 +25,12 @@ router.post("/auth/register", async (req, res) => {
     res.status(400).json({ message: "Пароль: минимум 6 символов" });
     return;
   }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (typeof email !== "string" || !emailRegex.test(email)) {
+    res.status(400).json({ message: "Укажите корректный email" });
+    return;
+  }
+
 
   const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, username));
   if (existing.length > 0) {
@@ -32,11 +39,15 @@ router.post("/auth/register", async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(usersTable).values({ username, displayName, passwordHash }).returning();
+  const [{ id: newId }] = await db.insert(usersTable).values({ username, displayName, passwordHash, email }).$returningId();
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, newId));
 
 
   const token = makeToken(user.username, user.displayName, user.id);
   res.status(201).json({ token, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl });
+
+  // Non-blocking: send registration notification email
+  sendRegistrationNotification({ username: user.username, displayName: user.displayName, email });
 });
 
 router.post("/auth/login", async (req, res) => {

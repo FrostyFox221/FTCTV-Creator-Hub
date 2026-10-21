@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/hooks/use-theme";
-import { Moon, Sun, Lock, Menu, X, PlayCircle, User, LogOut, Calendar } from "lucide-react";
+import { Moon, Sun, Lock, Menu, X, PlayCircle, User, LogOut, Calendar, Image, Video, FileText } from "lucide-react";
 import logoPath from "/logo.png";
 import { useGetMaintenanceStatus, useGetLivestream } from "@workspace/api-client-react";
 import Maintenance from "./maintenance";
@@ -14,6 +14,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { session, logout } = useUserAuth();
+  const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem("ftctv_cookie_consent") === "accepted");
 
   const { data: maintenance } = useGetMaintenanceStatus({ query: { queryKey: ["maintenance"] } });
   const { data: livestream } = useGetLivestream({ query: { queryKey: ["livestream"] } });
@@ -29,16 +30,62 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   // Show maintenance page if active (admin can bypass)
   if (maintenance?.isActive && !isAdminLoggedIn && !isAdminPage) {
-    return <Maintenance endsAt={maintenance.endsAt} message={maintenance.message} />;
+    return (
+      <>
+        <Maintenance endsAt={maintenance.endsAt} message={maintenance.message} />
+        {!cookieConsent && (
+          <div className="fixed bottom-0 left-0 right-0 z-[100] p-4 animate-in slide-in-from-bottom duration-500">
+            <div className="container mx-auto max-w-2xl">
+              <div className="bg-card border border-border rounded-2xl shadow-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
+                <div className="text-2xl shrink-0">🍪</div>
+                <div className="flex-1 text-center sm:text-left">
+                  <p className="text-sm font-semibold">Редакторы очень любят печеньки. Разрешите нам, пожалуйста.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Мы используем куки для улучшения работы сайта и вашего опыта.</p>
+                </div>
+                <button
+                  onClick={() => { localStorage.setItem("ftctv_cookie_consent", "accepted"); setCookieConsent(true); }}
+                  className="shrink-0 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
+                >
+                  Разрешить 🍪
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
 
   // Show "coming soon" page Aug 18–Sep 1 2026 (admin can bypass)
   if (shouldShowComingSoon() && !isAdminLoggedIn && !isAdminPage) {
-    return <ComingSoon />;
+    return (
+      <>
+        <ComingSoon />
+        {!cookieConsent && (
+          <div className="fixed bottom-0 left-0 right-0 z-[100] p-4 animate-in slide-in-from-bottom duration-500">
+            <div className="container mx-auto max-w-2xl">
+              <div className="bg-card border border-border rounded-2xl shadow-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
+                <div className="text-2xl shrink-0">🍪</div>
+                <div className="flex-1 text-center sm:text-left">
+                  <p className="text-sm font-semibold">Редакторы очень любят печеньки. Разрешите нам, пожалуйста.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Мы используем куки для улучшения работы сайта и вашего опыта.</p>
+                </div>
+                <button
+                  onClick={() => { localStorage.setItem("ftctv_cookie_consent", "accepted"); setCookieConsent(true); }}
+                  className="shrink-0 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
+                >
+                  Разрешить 🍪
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col w-full bg-background text-foreground font-sans transition-colors duration-300">
+    <div className="min-h-[100dvh] flex flex-col w-full overflow-x-hidden bg-background text-foreground font-sans transition-colors duration-300">
       <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${isScrolled ? "bg-background/95 backdrop-blur-md shadow-sm" : "bg-background"} border-b`}>
         {/* Main header row */}
         <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
@@ -47,40 +94,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop nav: Live + Schedule pills */}
-          <nav className="hidden md:flex items-center gap-2 mx-auto">
-            <Link
-              href="/live"
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-colors
-                ${location === '/live'
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-foreground/70 hover:border-primary hover:text-primary'
-                }`}
-            >
+          {/* Live indicator - always visible */}
+          {livestream?.isLive && (
+            <Link href="/live" className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-red-500 hover:bg-red-500/10 transition-colors ml-auto">
               <div className="relative flex h-2 w-2 shrink-0">
-                {livestream?.isLive ? (
-                  <>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </>
-                ) : (
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-foreground/30"></span>
-                )}
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </div>
-              Прямой эфир
+              В эфире
             </Link>
-
-            <Link
-              href="/media/schedule"
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-colors
-                ${location === '/media/schedule'
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-foreground/70 hover:border-primary hover:text-primary'
-                }`}
-            >
-              <Calendar className="w-3 h-3 shrink-0" />
-              Программа передач
-            </Link>
-          </nav>
+          )}
 
           {/* Right side controls */}
           <div className="flex items-center gap-1.5 shrink-0">
@@ -88,26 +111,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {session ? (
-              <div className="hidden md:flex items-center gap-1">
-                <Link href="/profile" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors">
-                  <User className="w-3 h-3" /> {session.displayName}
-                </Link>
-                <button onClick={logout} className="p-2 rounded-full text-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors" title="Выйти">
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <Link href="/login" className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors">
-                <User className="w-3 h-3" /> Войти
-              </Link>
-            )}
-
-            <Link href="/admin" className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-border text-foreground/70 hover:border-primary hover:text-primary transition-colors">
-              <Lock className="w-3 h-3" /> Админ
-            </Link>
-
-            <button className="md:hidden p-2.5 rounded-full text-foreground/70 hover:bg-secondary hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <button className="p-2.5 rounded-full text-foreground/70 hover:bg-secondary hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
@@ -115,7 +119,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden absolute top-14 left-0 w-full bg-background border-b shadow-lg py-4 px-4 flex flex-col gap-3 z-40">
+          <div className="absolute top-14 left-0 w-full bg-background border-b shadow-lg py-4 px-4 flex flex-col gap-3 z-40">
             <Link href="/" onClick={() => setMobileMenuOpen(false)} className={`text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>Главная</Link>
             <Link href="/live" onClick={() => setMobileMenuOpen(false)} className={`flex items-center justify-between text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/live' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
               <span className="flex items-center gap-2">
@@ -136,6 +140,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/media/schedule" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/media/schedule' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
               <Calendar className="w-4 h-4" /> Программа передач
             </Link>
+            <Link href="/media/articles" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/media/articles' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
+              <FileText className="w-4 h-4" /> Статьи
+            </Link>
+            <Link href="/gallery" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/gallery' || location.startsWith('/gallery/') ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
+              <Image className="w-4 h-4" /> Галерея
+            </Link>
+            <Link href="/videos" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/videos' || location.startsWith('/videos/') ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
+              <Video className="w-4 h-4" /> Видео
+            </Link>
             <div className="border-t pt-3 flex flex-col gap-2">
               {session ? (
                 <>
@@ -151,6 +164,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </>
               )}
               <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 text-muted-foreground hover:text-foreground"><Lock className="w-4 h-4" /> Панель администратора</Link>
+              <div className="border-t pt-3 mt-1 flex flex-col gap-2">
+                <Link href="/about" onClick={() => setMobileMenuOpen(false)} className={`text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/about' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>О нас</Link>
+              </div>
             </div>
           </div>
         )}
@@ -160,11 +176,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer className="w-full bg-[#1a1a2e] text-zinc-400 py-16 mt-auto">
+      <footer className="w-full bg-[#1a1a2e] text-zinc-400 pt-16 pb-[max(4rem,env(safe-area-inset-bottom,4rem))] mt-auto">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
           <div className="flex flex-col items-center md:items-start gap-4">
             <img src={logoPath} alt="FTCTV" className="h-10 brightness-200 contrast-200 grayscale" />
-            <p className="text-sm font-medium tracking-wide text-zinc-300">Смотреть. Знать. Быть в курсе.</p>
+            <p className="text-sm font-medium tracking-wide text-zinc-300">Смотри Своё</p>
           </div>
 
           <div className="flex flex-col items-center md:items-start gap-3">
@@ -172,6 +188,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/" className="hover:text-white transition-colors text-sm">Главная</Link>
             <Link href="/live" className="hover:text-white transition-colors text-sm">Прямой эфир</Link>
             <Link href="/media/schedule" className="hover:text-white transition-colors text-sm">Программа передач</Link>
+            <Link href="/media/articles" className="hover:text-white transition-colors text-sm">Статьи</Link>
+            <Link href="/gallery" className="hover:text-white transition-colors text-sm">Галерея</Link>
+            <Link href="/videos" className="hover:text-white transition-colors text-sm">Видео</Link>
+            <Link href="/about" className="hover:text-white transition-colors text-sm">О нас</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors text-sm">Политика конфиденциальности</Link>
             <Link href="/login" className="hover:text-white transition-colors text-sm">Войти / Регистрация</Link>
           </div>
 
@@ -183,18 +204,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="container mx-auto px-4 mt-10 pt-8 border-t border-zinc-800">
-          <div className="bg-zinc-900/60 rounded-xl p-5 mb-8 text-xs text-zinc-500 leading-relaxed max-w-3xl mx-auto text-center">
-            <p className="font-bold uppercase tracking-wider text-zinc-400 mb-2">Политика конфиденциальности аккаунтов</p>
-            <p>
-              Регистрируясь на FTCTV, вы создаёте личный аккаунт. Ваши данные (логин, имя, пароль) хранятся в защищённом виде и не передаются третьим лицам.
-              Пароль хранится в зашифрованном виде — сотрудники редакции не имеют доступа к вашему паролю.
-              Вы несёте ответственность за сохранность своих учётных данных и обязуетесь не передавать их третьим лицам.
-              Аккаунт предназначен исключительно для личного использования.
-            </p>
-          </div>
-          <p className="text-xs uppercase tracking-widest font-semibold text-zinc-500 text-center">FTC CREATE PRODUCTION 2026. Все права защищены.</p>
+          <p className="text-xs uppercase tracking-widest font-semibold text-zinc-500 text-center">© FTC MEDIA 2025–{new Date().getFullYear()}. Все права защищены.</p>
         </div>
       </footer>
+
+      {/* Cookie Consent Banner */}
+      {!cookieConsent && (
+        <div className="fixed bottom-0 left-0 right-0 z-[100] p-4 animate-in slide-in-from-bottom duration-500">
+          <div className="container mx-auto max-w-2xl">
+            <div className="bg-card border border-border rounded-2xl shadow-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
+              <div className="text-2xl shrink-0">🍪</div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-sm font-semibold">Редакторы очень любят печеньки. Разрешите нам, пожалуйста.</p>
+                <p className="text-xs text-muted-foreground mt-1">Мы используем куки для улучшения работы сайта и вашего опыта.</p>
+              </div>
+              <button
+                onClick={() => { localStorage.setItem("ftctv_cookie_consent", "accepted"); setCookieConsent(true); }}
+                className="shrink-0 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
+              >
+                Разрешить 🍪
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

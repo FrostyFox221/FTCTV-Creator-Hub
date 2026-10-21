@@ -1,13 +1,13 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { mysqlTable, text, int, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { postsTable } from "./posts";
 import { usersTable } from "./users";
 
-export const commentsTable = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  postId: integer("post_id").notNull().references(() => postsTable.id, { onDelete: "cascade" }),
-  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+export const commentsTable = mysqlTable("comments", {
+  id: int("id").primaryKey().autoincrement(),
+  postId: int("post_id").notNull().references(() => postsTable.id, { onDelete: "cascade" }),
+  userId: int("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

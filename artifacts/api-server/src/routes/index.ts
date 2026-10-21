@@ -18,6 +18,10 @@ import reactionsRouter from "./reactions";
 import profileRouter from "./profile";
 import imageProxyRouter from "./image-proxy";
 import uploadRouter from "./upload";
+import galleryRouter from "./gallery";
+import videoRouter from "./video";
+import hourlyNewsRouter from "./hourly-news";
+import tickerRouter from "./ticker";
 
 const router: IRouter = Router();
 
@@ -40,5 +44,9 @@ router.use(reactionsRouter);
 router.use(profileRouter);
 router.use(imageProxyRouter);
 router.use(uploadRouter);
+router.use(galleryRouter);
+router.use(videoRouter);
+router.use(hourlyNewsRouter);
+router.use(tickerRouter);
 
 export default router;

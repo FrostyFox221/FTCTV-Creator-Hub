@@ -75,7 +75,7 @@ router.post("/telegram/sync", async (req, res) => {
   try {
     const body = SyncTelegramBody.parse(req.body);
     if (body.adminToken !== ADMIN_TOKEN) {
-      return res.status(401).json({ error: "Unauthorized" });
+      res.status(401).json({ error: "Unauthorized" }); return;
     }
 
     const settings = await db.select().from(settingsTable).limit(1);
@@ -135,12 +135,12 @@ router.post("/telegram/sync", async (req, res) => {
       }
     } catch (e: any) {
       req.log.error({ err: e }, "Telegram sync failed");
-      return res.json({
+      res.json({
         synced: 0,
         skipped: 0,
         errors: 1,
         message: `Sync failed: ${e.message}`,
-      });
+      }); return;
     }
 
     res.json({

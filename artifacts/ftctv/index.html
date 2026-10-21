@@ -18,7 +18,45 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root">
+      <!-- Fallback — показывается пока React не смонтируется, или если JS сломался -->
+      <div id="load-fallback" style="display:none;position:fixed;inset:0;z-index:99999;background:#7c3aed;color:#fff;font-family:system-ui,-apple-system,sans-serif;padding:2rem;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:1rem">Не удалось загрузить сайт</h1>
+        <p style="max-width:28rem;line-height:1.6;margin-bottom:1.5rem;opacity:0.9">
+          Возможные причины:<br/>
+          • Нет подключения к интернету<br/>
+          • Сервер временно недоступен<br/>
+          • Браузер заблокировал скрипты
+        </p>
+        <button onclick="location.reload()" style="background:#fff;color:#7c3aed;border:none;padding:0.75rem 2rem;border-radius:0.5rem;font-weight:600;font-size:1rem;cursor:pointer">
+          Перезагрузить страницу
+        </button>
+        <p style="margin-top:1.5rem;font-size:0.8rem;opacity:0.7">Если проблема сохраняется — попробуйте очистить кэш браузера или зайти позже</p>
+      </div>
+    </div>
+    <noscript>
+      <div style="position:fixed;inset:0;z-index:99999;background:#7c3aed;color:#fff;font-family:system-ui,-apple-system,sans-serif;padding:2rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:1rem">JavaScript отключён</h1>
+        <p style="max-width:28rem;line-height:1.6;opacity:0.9">Для работы сайта необходимо включить JavaScript в настройках вашего браузера.</p>
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx" onerror="document.getElementById('load-fallback').style.display='flex'"></script>
+    <script>
+      // Перехват ошибки загрузки JS-модуля (script load failure)
+      window.addEventListener('error', function(e) {
+        if (e.target && e.target.tagName === 'SCRIPT') {
+          var fb = document.getElementById('load-fallback');
+          if (fb) fb.style.display = 'flex';
+        }
+      }, true);
+      // Если через 8 секунд React так и не смонтировался — показываем fallback
+      setTimeout(function(){
+        var root = document.getElementById('root');
+        var fb = document.getElementById('load-fallback');
+        if (root && fb && root.children.length <= 1) {
+          fb.style.display = 'flex';
+        }
+      }, 8000);
+    </script>
   </body>
 </html>

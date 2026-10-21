@@ -15,4 +15,6 @@ export interface Article {
   createdAt: string;
   /** @nullable */
   updatedAt?: string | null;
+  /** @nullable */
+  mediaUrl?: string | null;
 }

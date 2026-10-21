@@ -1,6 +1,6 @@
 import { useGetPost } from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Clock, MonitorPlay, Share2, Heart, Send, Trash2, User } from "lucide-react";
+import { ArrowLeft, Clock, Share2, Heart, Send, Trash2, User } from "lucide-react";
 import { formatDate, renderMarkdownBold } from "@/lib/format";
 import { getImageUrl } from "@/lib/image-url";
 import { useState, useEffect } from "react";
@@ -98,14 +98,14 @@ export default function PostDetail() {
               allowFullScreen
             />
           ) : (
-            <video src={post.videoUrl} controls className="w-full h-full object-contain" />
+            <video src={post.videoUrl} controls preload="metadata" className="w-full h-full object-contain" />
           )}
         </div>
       )}
 
       {post.images?.[0] && !post.videoUrl && (
         <div className="mb-12 w-full max-h-[600px] rounded-2xl overflow-hidden bg-muted shadow-lg border border-border/50 flex justify-center">
-          <img src={getImageUrl(post.images[0])} alt={post.title} className="w-full h-full object-cover" />
+          <img src={getImageUrl(post.images[0])} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
         </div>
       )}
 
@@ -142,6 +142,7 @@ interface Comment {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  role: string | null;
 }
 
 function ReactionsAndComments({ postId }: { postId: number }) {
@@ -240,7 +241,7 @@ function ReactionsAndComments({ postId }: { postId: number }) {
         <form onSubmit={submitComment} className="flex gap-3 mb-8">
           <div className="w-9 h-9 rounded-full bg-muted border flex-shrink-0 flex items-center justify-center overflow-hidden">
             {session?.avatarUrl ? (
-              <img src={session.avatarUrl} alt="" className="w-full h-full object-cover" />
+              <img src={session.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
             ) : (
               <User className="w-4 h-4 text-muted-foreground" />
             )}
@@ -275,14 +276,19 @@ function ReactionsAndComments({ postId }: { postId: number }) {
           <div key={comment.id} className="flex gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50">
             <div className="w-8 h-8 rounded-full bg-muted border flex-shrink-0 flex items-center justify-center overflow-hidden">
               {comment.avatarUrl ? (
-                <img src={comment.avatarUrl} alt="" className="w-full h-full object-cover" />
+                <img src={comment.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
               ) : (
                 <User className="w-4 h-4 text-muted-foreground" />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-sm font-bold truncate">{comment.displayName || comment.username}</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-sm font-bold truncate">{comment.displayName || comment.username}</span>
+                  {comment.role === "owner" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 leading-none flex-shrink-0">Владелец</span>}
+                  {comment.role === "administrator" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20 leading-none flex-shrink-0">Администратор</span>}
+                  {comment.role === "moderator" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20 leading-none flex-shrink-0">Модератор</span>}
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(comment.createdAt).toLocaleDateString("ru-RU")}</span>
                   {session?.username === comment.username && (

@@ -9,3 +9,7 @@ export * from "./users";
 export * from "./stories";
 export * from "./comments";
 export * from "./reactions";
+export * from "./gallery";
+export * from "./video";
+export * from "./hourly-news";
+export * from "./ticker-cache";

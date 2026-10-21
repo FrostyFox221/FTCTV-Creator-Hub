@@ -24,6 +24,7 @@ export const GetPostsQueryParams = zod.object({
   page: zod.coerce.number().default(getPostsQueryPageDefault),
   limit: zod.coerce.number().default(getPostsQueryLimitDefault),
   search: zod.coerce.string().nullish(),
+  source: zod.enum(["telegram", "admin"]).nullish(),
 });
 
 export const GetPostsResponse = zod.object({
@@ -348,6 +349,7 @@ export const GetArticlesResponse = zod.object({
       published: zod.boolean(),
       createdAt: zod.string(),
       updatedAt: zod.string().nullish(),
+      mediaUrl: zod.string().nullish(),
     }),
   ),
   total: zod.number(),
@@ -361,6 +363,7 @@ export const CreateArticleBody = zod.object({
   content: zod.string(),
   authorName: zod.string(),
   published: zod.boolean().optional(),
+  mediaUrl: zod.string().nullish(),
 });
 
 /**
@@ -378,6 +381,7 @@ export const GetArticleResponse = zod.object({
   published: zod.boolean(),
   createdAt: zod.string(),
   updatedAt: zod.string().nullish(),
+  mediaUrl: zod.string().nullish(),
 });
 
 /**
@@ -392,6 +396,7 @@ export const UpdateArticleBody = zod.object({
   content: zod.string(),
   authorName: zod.string(),
   published: zod.boolean().optional(),
+  mediaUrl: zod.string().nullish(),
 });
 
 export const UpdateArticleResponse = zod.object({
@@ -402,6 +407,7 @@ export const UpdateArticleResponse = zod.object({
   published: zod.boolean(),
   createdAt: zod.string(),
   updatedAt: zod.string().nullish(),
+  mediaUrl: zod.string().nullish(),
 });
 
 /**

@@ -17,11 +17,11 @@ export default function MediaSchedule() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-5xl">
       <div className="flex items-center gap-3 mb-8">
-        <Link href="/media" className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </Link>
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">FTC Media</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">FTCTV</p>
           <h1 className="text-3xl font-black uppercase tracking-wide">Программа передач</h1>
         </div>
       </div>
@@ -70,6 +70,25 @@ export default function MediaSchedule() {
                       }`}
                     >
                       <span className="text-xs font-bold text-primary min-w-[40px] mt-0.5">{item.timeSlot}</span>
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="w-14 h-10 rounded object-cover shrink-0 border border-border"
+                        />
+                      ) : (
+                        <div
+                          className="w-14 h-10 rounded shrink-0 border border-border bg-secondary/50 flex items-center justify-center"
+                          role="img"
+                          aria-label={`Нет изображения: ${item.title}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="m21 15-5-5L5 21"/>
+                          </svg>
+                        </div>
+                      )}
                       <div className="flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-sm font-semibold leading-tight">{item.title}</p>

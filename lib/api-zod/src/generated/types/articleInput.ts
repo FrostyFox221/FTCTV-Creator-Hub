@@ -11,4 +11,6 @@ export interface ArticleInput {
   content: string;
   authorName: string;
   published?: boolean;
+  /** @nullable */
+  mediaUrl?: string | null;
 }

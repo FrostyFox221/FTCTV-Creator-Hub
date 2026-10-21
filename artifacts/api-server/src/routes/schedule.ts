@@ -20,28 +20,29 @@ router.post("/schedule", requireAdmin, async (req, res) => {
     res.status(400).json({ message: "Invalid input" });
     return;
   }
-  const [item] = await db.insert(scheduleTable).values(parsed.data).returning();
+  const [{ id: newId }] = await db.insert(scheduleTable).values(parsed.data).$returningId();
+  const [item] = await db.select().from(scheduleTable).where(eq(scheduleTable.id, newId));
   res.status(201).json(item);
 });
 
 router.put("/schedule/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const parsed = insertScheduleSchema.partial().safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid input" });
     return;
   }
-  const [item] = await db
+  await db
     .update(scheduleTable)
     .set(parsed.data)
-    .where(eq(scheduleTable.id, id))
-    .returning();
+    .where(eq(scheduleTable.id, id));
+  const [item] = await db.select().from(scheduleTable).where(eq(scheduleTable.id, id));
   if (!item) { res.status(404).json({ message: "Not found" }); return; }
   res.json(item);
 });
 
 router.delete("/schedule/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   await db.delete(scheduleTable).where(eq(scheduleTable.id, id));
   res.json({ message: "Deleted" });
 });

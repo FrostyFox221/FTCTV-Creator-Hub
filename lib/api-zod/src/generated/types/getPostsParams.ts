@@ -5,6 +5,7 @@
  * FTCTV.Online API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { GetPostsSource } from "./getPostsSource";
 
 export type GetPostsParams = {
   page?: number;
@@ -13,4 +14,8 @@ export type GetPostsParams = {
    * @nullable
    */
   search?: string | null;
+  /**
+   * @nullable
+   */
+  source?: GetPostsSource;
 };

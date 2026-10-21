@@ -43,7 +43,7 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
  */
 router.put("/storage/put/:objectId", async (req: Request, res: Response) => {
   try {
-    const { objectId } = req.params;
+    const objectId = req.params.objectId as string;
     if (!objectId || objectId.includes("..") || objectId.includes("/")) {
       res.status(400).json({ error: "Invalid object ID" });
       return;
@@ -104,8 +104,9 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
       return;
     }
 
+    const resolvedName = await localStorageService.resolveFileName(objectName);
     const data = await localStorageService.readFile(objectName);
-    const mimeType = localStorageService.getMimeType(objectName);
+    const mimeType = localStorageService.getMimeType(resolvedName || objectName);
 
     res.setHeader("Content-Type", mimeType);
     res.setHeader("Content-Length", data.length);

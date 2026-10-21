@@ -1,9 +1,9 @@
-import { pgTable, text, serial, boolean, integer, timestamp } from "drizzle-orm/pg-core";
+import { mysqlTable, text, int, boolean, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const settingsTable = pgTable("site_settings", {
-  id: serial("id").primaryKey(),
+export const settingsTable = mysqlTable("site_settings", {
+  id: int("id").primaryKey().autoincrement(),
   siteName: text("site_name").notNull().default("FTCTV.Online"),
   logoUrl: text("logo_url"),
   telegramChannel: text("telegram_channel").notNull().default(""),
@@ -11,7 +11,7 @@ export const settingsTable = pgTable("site_settings", {
   footerText: text("footer_text").notNull().default("FTC CREATE PRODUCTION 2026. Все права защищены."),
   contactEmail: text("contact_email").notNull().default("ftcmedia@mail.com"),
   autoSyncEnabled: boolean("auto_sync_enabled").notNull().default(true),
-  syncIntervalMinutes: integer("sync_interval_minutes").notNull().default(5),
+  syncIntervalMinutes: int("sync_interval_minutes").notNull().default(5),
   lastSync: timestamp("last_sync"),
   bannerEnabled: boolean("banner_enabled").notNull().default(false),
   bannerTitle: text("banner_title"),

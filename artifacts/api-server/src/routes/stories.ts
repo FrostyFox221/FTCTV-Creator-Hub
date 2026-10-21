@@ -17,12 +17,13 @@ router.post("/stories", requireAdmin, async (req, res) => {
     res.status(400).json({ message: "imageUrl обязателен" });
     return;
   }
-  const [story] = await db.insert(storiesTable).values({
+  const [{ id: newId }] = await db.insert(storiesTable).values({
     imageUrl,
     title: title ?? null,
     link: link ?? null,
     sortOrder: sortOrder ?? 0,
-  }).returning();
+  }).$returningId();
+  const [story] = await db.select().from(storiesTable).where(eq(storiesTable.id, newId));
   res.status(201).json(story);
 });
 

@@ -21,6 +21,7 @@ export * from "./forumTopicDetail";
 export * from "./forumTopicInput";
 export * from "./forumTopicsPage";
 export * from "./getPostsParams";
+export * from "./getPostsSource";
 export * from "./healthStatus";
 export * from "./livestream";
 export * from "./livestreamInput";

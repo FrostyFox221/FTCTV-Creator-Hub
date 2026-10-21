@@ -1,19 +1,19 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { mysqlTable, text, int, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const forumTopicsTable = pgTable("forum_topics", {
-  id: serial("id").primaryKey(),
+export const forumTopicsTable = mysqlTable("forum_topics", {
+  id: int("id").primaryKey().autoincrement(),
   title: text("title").notNull(),
   category: text("category").notNull().default("Общее"),
   authorName: text("author_name").notNull(),
-  replyCount: integer("reply_count").notNull().default(0),
+  replyCount: int("reply_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const forumRepliesTable = pgTable("forum_replies", {
-  id: serial("id").primaryKey(),
-  topicId: integer("topic_id").notNull(),
+export const forumRepliesTable = mysqlTable("forum_replies", {
+  id: int("id").primaryKey().autoincrement(),
+  topicId: int("topic_id").notNull(),
   authorName: text("author_name").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

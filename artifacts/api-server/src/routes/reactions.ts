@@ -25,7 +25,7 @@ router.get("/posts/:postId/reactions", async (req, res) => {
   let userReacted = false;
 
   const [countResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`count(*)` })
     .from(reactionsTable)
     .where(eq(reactionsTable.postId, postId));
 

@@ -1,12 +1,12 @@
-import { useGetLivestream, useGetPosts } from "@workspace/api-client-react";
-import { Radio, Calendar, MessageCircle, ChevronRight, Play } from "lucide-react";
+import { useGetLivestream, useGetPosts, useGetSchedule } from "@workspace/api-client-react";
+import { Radio, Calendar, MessageCircle, ChevronRight, Play, Star, Clock } from "lucide-react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 
 export default function Live() {
   const { data: livestream, isLoading } = useGetLivestream({ query: { queryKey: ["livestream"] } });
   const { data: postsData } = useGetPosts({ limit: 3 }, { query: { queryKey: ["posts", 1, null] } });
+  const { data: scheduleItems, isLoading: scheduleLoading } = useGetSchedule({ query: { queryKey: ["schedule"] } });
 
   if (isLoading) {
     return (
@@ -72,6 +72,91 @@ export default function Live() {
     );
   };
 
+  const DAYS_SHORT = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const nowHHMM = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+
+  const todayItems = (scheduleItems ?? [])
+    .filter((i) => i.dayOfWeek === todayIdx)
+    .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
+
+  const renderSchedulePanel = () => {
+    if (scheduleLoading) {
+      return (
+        <div className="container mx-auto px-4 pb-12 max-w-5xl">
+          <div className="h-8 bg-muted rounded w-1/4 mb-4 animate-pulse" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (todayItems.length === 0) return null;
+
+    const currentIdx = todayItems.reduce((acc, item, idx) => {
+      return item.timeSlot <= nowHHMM ? idx : acc;
+    }, -1);
+
+    return (
+      <div className="container mx-auto px-4 pb-12 max-w-5xl">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <Clock className="w-5 h-5 text-primary" />
+            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">
+              Сегодня в эфире
+            </h3>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+              {DAYS_SHORT[todayIdx]}
+            </span>
+          </div>
+          <Link href="/media/schedule" className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1 hover:underline">
+            Вся программа <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {todayItems.map((item, idx) => {
+            const isCurrent = idx === currentIdx;
+            return (
+              <div
+                key={item.id}
+                className={`relative flex items-start gap-3 p-4 rounded-xl border transition-all ${
+                  isCurrent
+                    ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                    : item.isPremiere
+                    ? "border-amber-500/30 bg-amber-500/5"
+                    : item.isLiveShow
+                    ? "border-red-500/30 bg-red-500/5"
+                    : "border-border bg-card"
+                }`}
+              >
+                {isCurrent && (
+                  <div className="absolute -top-2 left-3 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+                    Сейчас
+                  </div>
+                )}
+                <span className={`text-sm font-bold min-w-[45px] mt-0.5 ${isCurrent ? "text-primary" : "text-muted-foreground"}`}>
+                  {item.timeSlot}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className={`text-sm font-semibold leading-tight ${isCurrent ? "text-foreground" : ""}`}>{item.title}</p>
+                    {item.isPremiere && <Star className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />}
+                    {item.isLiveShow && <Radio className="w-3 h-3 text-red-500 shrink-0" />}
+                  </div>
+                  {item.genre && <p className="text-xs text-muted-foreground mt-0.5">{item.genre}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full min-h-[calc(100vh-16rem)]">
       {/* Header Area */}
@@ -109,10 +194,12 @@ export default function Live() {
               </p>
             )}
           </div>
+
+          {renderSchedulePanel()}
         </div>
       ) : (
         <div className="container mx-auto px-4 pb-16 max-w-5xl">
-          <div className="w-full aspect-[21/9] md:aspect-video bg-card border rounded-3xl overflow-hidden shadow-sm relative flex flex-col items-center justify-center p-6 text-center mb-16">
+          <div className="w-full md:aspect-video bg-card border rounded-3xl overflow-hidden shadow-sm relative flex flex-col items-center justify-center py-10 px-4 md:p-6 text-center mb-16">
             <div className="absolute inset-0 bg-secondary/30" />
             <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mb-6 shadow-md relative z-10">
               <Play className="w-8 h-8 text-muted-foreground ml-1" />
@@ -133,16 +220,18 @@ export default function Live() {
                 Следите за расписанием и анонсами в нашем Telegram-канале, чтобы ничего не пропустить.
               </p>
               <a 
-                href="https://t.me/ftctv_itv" 
+                href="https://t.me/ftctv_official" 
                 target="_blank" 
                 rel="noreferrer"
                 className="mt-2 w-full bg-[#0088cc] hover:bg-[#0077b5] text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-sm transition-colors flex items-center justify-center gap-2"
               >
                 <MessageCircle className="w-4 h-4" />
-                @ftctv.itv
+                @ftctv_official
               </a>
             </div>
           </div>
+
+          {renderSchedulePanel()}
 
           {postsData?.posts && postsData.posts.length > 0 && (
             <div>

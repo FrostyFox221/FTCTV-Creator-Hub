@@ -1,10 +1,10 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { mysqlTable, text, int, boolean, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const scheduleTable = pgTable("schedule", {
-  id: serial("id").primaryKey(),
-  dayOfWeek: integer("day_of_week").notNull(), // 0=Mon, 6=Sun
+export const scheduleTable = mysqlTable("schedule", {
+  id: int("id").primaryKey().autoincrement(),
+  dayOfWeek: int("day_of_week").notNull(), // 0=Mon, 6=Sun
   timeSlot: text("time_slot").notNull(), // "09:00"
   title: text("title").notNull(),
   description: text("description"),

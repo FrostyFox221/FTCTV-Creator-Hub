@@ -14,21 +14,23 @@ router.get("/banners", async (_req, res) => {
 router.post("/banners", requireAdmin, async (req, res) => {
   const parsed = insertBannerSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ message: "Invalid input" }); return; }
-  const [item] = await db.insert(bannersTable).values(parsed.data).returning();
+  const [{ id: newId }] = await db.insert(bannersTable).values(parsed.data).$returningId();
+  const [item] = await db.select().from(bannersTable).where(eq(bannersTable.id, newId));
   res.status(201).json(item);
 });
 
 router.put("/banners/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const parsed = insertBannerSchema.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ message: "Invalid input" }); return; }
-  const [item] = await db.update(bannersTable).set(parsed.data).where(eq(bannersTable.id, id)).returning();
+  await db.update(bannersTable).set(parsed.data).where(eq(bannersTable.id, id));
+  const [item] = await db.select().from(bannersTable).where(eq(bannersTable.id, id));
   if (!item) { res.status(404).json({ message: "Not found" }); return; }
   res.json(item);
 });
 
 router.delete("/banners/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   await db.delete(bannersTable).where(eq(bannersTable.id, id));
   res.json({ message: "Deleted" });
 });

@@ -83,7 +83,7 @@ export function RegisterPage() {
   const [, navigate] = useLocation();
   const { login } = useUserAuth();
   const { toast } = useToast();
-  const [form, setForm] = useState({ username: "", displayName: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ username: "", displayName: "", email: "", password: "", confirm: "" });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,7 +97,7 @@ export function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: form.username, displayName: form.displayName, password: form.password }),
+        body: JSON.stringify({ username: form.username, displayName: form.displayName, email: form.email, password: form.password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Ошибка регистрации");
@@ -140,6 +140,17 @@ export function RegisterPage() {
               placeholder="Иван Иванов"
               minLength={2}
               required
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              placeholder="user@example.com"
+              required
+              autoComplete="email"
             />
           </div>
           <div className="flex flex-col gap-2">

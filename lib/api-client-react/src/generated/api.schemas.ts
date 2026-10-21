@@ -288,6 +288,8 @@ export interface Article {
   createdAt: string;
   /** @nullable */
   updatedAt?: string | null;
+  /** @nullable */
+  mediaUrl?: string | null;
 }
 
 export interface ArticlesPage {
@@ -300,6 +302,8 @@ export interface ArticleInput {
   content: string;
   authorName: string;
   published?: boolean;
+  /** @nullable */
+  mediaUrl?: string | null;
 }
 
 export interface ForumTopic {
@@ -361,7 +365,20 @@ export type GetPostsParams = {
    * @nullable
    */
   search?: string | null;
+  /**
+   * @nullable
+   */
+  source?: GetPostsSource;
 };
+
+export type GetPostsSource =
+  | (typeof GetPostsSource)[keyof typeof GetPostsSource]
+  | null;
+
+export const GetPostsSource = {
+  telegram: "telegram",
+  admin: "admin",
+} as const;
 
 export type DeleteStory200 = {
   ok?: boolean;

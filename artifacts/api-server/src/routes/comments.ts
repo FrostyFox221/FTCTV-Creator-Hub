@@ -32,6 +32,7 @@ router.get("/posts/:postId/comments", async (req, res) => {
       username: usersTable.username,
       displayName: usersTable.displayName,
       avatarUrl: usersTable.avatarUrl,
+      role: usersTable.role,
     })
     .from(commentsTable)
     .leftJoin(usersTable, eq(commentsTable.userId, usersTable.id))
@@ -54,11 +55,12 @@ router.post("/posts/:postId/comments", async (req, res) => {
     res.status(400).json({ message: "Комментарий: 1–1000 символов" }); return;
   }
 
-  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, tokenUser.username));
+  const [user] = await db.select({ id: usersTable.id, role: usersTable.role }).from(usersTable).where(eq(usersTable.username, tokenUser.username));
   if (!user) { res.status(401).json({ message: "User not found" }); return; }
 
-  const [comment] = await db.insert(commentsTable).values({ postId, userId: user.id, content: content.trim() }).returning();
-  res.status(201).json({ ...comment, username: tokenUser.username, displayName: tokenUser.displayName });
+  const [{ id: newId }] = await db.insert(commentsTable).values({ postId, userId: user.id, content: content.trim() }).$returningId();
+  const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, newId));
+  res.status(201).json({ ...comment, username: tokenUser.username, displayName: tokenUser.displayName, role: user.role });
 });
 
 // Delete a comment

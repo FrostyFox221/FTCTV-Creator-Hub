@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { mkdir, writeFile, readFile, access } from "fs/promises";
+import { mkdir, writeFile, readFile, access, readdir } from "fs/promises";
 import path from "path";
 import { constants } from "fs";
 
@@ -56,11 +56,47 @@ export class LocalStorageService {
 
     try {
       await access(filePath, constants.R_OK);
+      return readFile(filePath);
     } catch {
-      throw new ObjectNotFoundError();
+      // File not found — try matching with extension (uuid -> uuid.jpg, etc.)
     }
 
-    return readFile(filePath);
+    // Fallback: search for files starting with the sanitized name
+    try {
+      const files = await readdir(this.uploadDir);
+      const match = files.find((f) => f.startsWith(sanitized + ".") || f === sanitized);
+      if (match) {
+        const matchPath = path.join(this.uploadDir, match);
+        return readFile(matchPath);
+      }
+    } catch {
+      // readdir failed
+    }
+
+    throw new ObjectNotFoundError();
+  }
+
+  /**
+   * Resolve the actual filename on disk (with extension) for a given objectName.
+   */
+  async resolveFileName(objectName: string): Promise<string | null> {
+    const sanitized = path.basename(objectName);
+    const filePath = path.join(this.uploadDir, sanitized);
+
+    try {
+      await access(filePath, constants.R_OK);
+      return sanitized;
+    } catch {
+      // try with extension
+    }
+
+    try {
+      const files = await readdir(this.uploadDir);
+      const match = files.find((f) => f.startsWith(sanitized + ".") || f === sanitized);
+      return match || null;
+    } catch {
+      return null;
+    }
   }
 
   /**

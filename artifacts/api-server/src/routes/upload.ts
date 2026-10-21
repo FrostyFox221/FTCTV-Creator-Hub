@@ -74,13 +74,20 @@ router.post("/upload", async (req: Request, res: Response) => {
       return;
     }
 
-    // Validate: only images, max 5MB
-    if (!mimeType.startsWith("image/")) {
-      res.status(400).json({ error: "Only images allowed" });
+    // Validate: images, video (mp4/webm), PDF
+    const allowedMimes = [
+      "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+      "video/mp4", "video/webm",
+      "application/pdf",
+    ];
+    if (!allowedMimes.includes(mimeType) && !mimeType.startsWith("image/")) {
+      res.status(400).json({ error: "File type not allowed" });
       return;
     }
-    if (fileData.length > 5 * 1024 * 1024) {
-      res.status(400).json({ error: "File too large (max 5MB)" });
+    const isVideo = mimeType === "video/mp4" || mimeType === "video/webm";
+    const maxSize = isVideo ? 500 * 1024 * 1024 : 50 * 1024 * 1024; // 500MB video, 50MB other
+    if (fileData.length > maxSize) {
+      res.status(400).json({ error: isVideo ? "File too large (max 500MB)" : "File too large (max 50MB)" });
       return;
     }
 
@@ -100,7 +107,7 @@ router.post("/upload", async (req: Request, res: Response) => {
 
 // Serve uploaded files
 router.get("/uploads/:filename", async (req: Request, res: Response) => {
-  const { filename } = req.params;
+  const filename = req.params.filename as string;
   // Sanitize
   if (filename.includes("..") || filename.includes("/")) {
     res.status(400).json({ error: "Invalid filename" });
@@ -115,6 +122,7 @@ router.get("/uploads/:filename", async (req: Request, res: Response) => {
     const mimes: Record<string, string> = {
       ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
       ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+      ".mp4": "video/mp4", ".webm": "video/webm", ".pdf": "application/pdf",
     };
     res.setHeader("Content-Type", mimes[ext] || "application/octet-stream");
     res.setHeader("Cache-Control", "public, max-age=604800");

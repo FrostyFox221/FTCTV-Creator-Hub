@@ -18,7 +18,7 @@ function verifyAdmin(req: any): boolean {
 async function ensureSettings() {
   const existing = await db.select().from(settingsTable).limit(1);
   if (existing.length === 0) {
-    const [row] = await db.insert(settingsTable).values({
+    const [{ id: newId }] = await db.insert(settingsTable).values({
       siteName: "FTCTV.Online",
       telegramChannel: "@ftctv.itv",
       telegramBotToken: "8797996336:AAHV9B4xUfQczTKF9TctQJ5lvwOUeFu4r0M",
@@ -26,7 +26,8 @@ async function ensureSettings() {
       contactEmail: "ftcmedia@mail.com",
       autoSyncEnabled: true,
       syncIntervalMinutes: 5,
-    }).returning();
+    }).$returningId();
+    const [row] = await db.select().from(settingsTable).where(eq(settingsTable.id, newId));
     return row;
   }
   return existing[0];
@@ -58,14 +59,14 @@ router.get("/settings", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  if (!verifyAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!verifyAdmin(req)) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const body = UpdateSettingsBody.parse(req.body);
     const cfg = await ensureSettings();
-    const [updated] = await db.update(settingsTable)
+    await db.update(settingsTable)
       .set(body)
-      .where(eq(settingsTable.id, cfg.id))
-      .returning();
+      .where(eq(settingsTable.id, cfg.id));
+    const [updated] = await db.select().from(settingsTable).where(eq(settingsTable.id, cfg.id));
     res.json({
       id: updated.id,
       siteName: updated.siteName,

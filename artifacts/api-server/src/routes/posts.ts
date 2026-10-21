@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { postsTable } from "@workspace/db";
-import { eq, desc, ilike, or, count } from "drizzle-orm";
+import { eq, desc, like, or, and, count } from "drizzle-orm";
 import { CreatePostBody, UpdatePostBody, GetPostsQueryParams, GetPostParams, UpdatePostParams, DeletePostParams } from "@workspace/api-zod";
 
 const router = Router();
@@ -22,19 +22,26 @@ router.get("/posts", async (req, res) => {
       page: req.query.page ? Number(req.query.page) : 1,
       limit: req.query.limit ? Number(req.query.limit) : 20,
       search: rawSearch && rawSearch !== "null" ? rawSearch : null,
+      source: req.query.source as string | undefined,
     });
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const offset = (page - 1) * limit;
 
-    let whereClause: any = undefined;
+    const conditions: any[] = [];
     if (query.search) {
-      whereClause = or(
-        ilike(postsTable.title, `%${query.search}%`),
-        ilike(postsTable.content, `%${query.search}%`)
+      conditions.push(
+        or(
+          like(postsTable.title, `%${query.search}%`),
+          like(postsTable.content, `%${query.search}%`)
+        )
       );
     }
+    if (query.source) {
+      conditions.push(eq(postsTable.source, query.source));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const [posts, totalResult] = await Promise.all([
       db.select().from(postsTable)
@@ -47,7 +54,7 @@ router.get("/posts", async (req, res) => {
 
     const total = totalResult[0]?.count ?? 0;
 
-    res.json({
+    return res.json({
       posts: posts.map(p => ({
         ...p,
         images: Array.isArray(p.images) ? p.images : (typeof p.images === "string" ? JSON.parse(p.images) : []),
@@ -60,7 +67,7 @@ router.get("/posts", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get posts");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -70,7 +77,7 @@ router.get("/posts/:id", async (req, res) => {
     const post = await db.select().from(postsTable).where(eq(postsTable.id, id)).limit(1);
     if (!post[0]) return res.status(404).json({ error: "Post not found" });
     const p = post[0];
-    res.json({
+    return res.json({
       ...p,
       images: p.images ?? [],
       createdAt: p.createdAt.toISOString(),
@@ -78,7 +85,7 @@ router.get("/posts/:id", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get post");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -86,15 +93,16 @@ router.post("/posts", async (req, res) => {
   if (!verifyAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
   try {
     const body = CreatePostBody.parse(req.body);
-    const [post] = await db.insert(postsTable).values({
+    const [{ id: newId }] = await db.insert(postsTable).values({
       title: body.title,
       content: body.content,
       images: body.images ?? [],
       videoUrl: body.videoUrl ?? null,
       source: "admin",
       published: body.published ?? true,
-    }).returning();
-    res.status(201).json({
+    }).$returningId();
+    const [post] = await db.select().from(postsTable).where(eq(postsTable.id, newId));
+    return res.status(201).json({
       ...post,
       images: post.images ?? [],
       createdAt: post.createdAt.toISOString(),
@@ -102,7 +110,7 @@ router.post("/posts", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to create post");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -111,12 +119,12 @@ router.put("/posts/:id", async (req, res) => {
   try {
     const { id } = UpdatePostParams.parse({ id: Number(req.params.id) });
     const body = UpdatePostBody.parse(req.body);
-    const [post] = await db.update(postsTable)
+    await db.update(postsTable)
       .set({ ...body, updatedAt: new Date() })
-      .where(eq(postsTable.id, id))
-      .returning();
+      .where(eq(postsTable.id, id));
+    const [post] = await db.select().from(postsTable).where(eq(postsTable.id, id));
     if (!post) return res.status(404).json({ error: "Post not found" });
-    res.json({
+    return res.json({
       ...post,
       images: post.images ?? [],
       createdAt: post.createdAt.toISOString(),
@@ -124,7 +132,7 @@ router.put("/posts/:id", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to update post");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -133,10 +141,10 @@ router.delete("/posts/:id", async (req, res) => {
   try {
     const { id } = DeletePostParams.parse({ id: Number(req.params.id) });
     await db.delete(postsTable).where(eq(postsTable.id, id));
-    res.json({ message: "Post deleted" });
+    return res.json({ message: "Post deleted" });
   } catch (err) {
     req.log.error({ err }, "Failed to delete post");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -70,6 +70,11 @@ paths:
           in: query
           schema:
             type: ["string", "null"]
+        - name: source
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: [telegram, admin]
       responses:
         "200":
           description: List of posts
@@ -1257,6 +1262,8 @@ components:
           type: string
         updatedAt:
           type: ["string", "null"]
+        mediaUrl:
+          type: ["string", "null"]
 
     ArticlesPage:
       type: object
@@ -1281,6 +1288,8 @@ components:
           type: string
         published:
           type: boolean
+        mediaUrl:
+          type: ["string", "null"]
 
     ForumTopic:
       type: object
