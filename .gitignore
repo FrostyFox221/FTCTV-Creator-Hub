@@ -61,3 +61,6 @@ artifacts/api-server/uploads/*
 
 # Junk files
 @vm:*
+
+# Android/Capacitor (belongs in FTCTV- repo)
+artifacts/ftctv/android/
