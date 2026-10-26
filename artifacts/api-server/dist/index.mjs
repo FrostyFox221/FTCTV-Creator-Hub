@@ -79752,7 +79752,8 @@ var commentsTable = mysqlTable("comments", {
   postId: int("post_id").notNull().references(() => postsTable.id, { onDelete: "cascade" }),
   userId: int("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  parentId: int("parent_id").references(() => commentsTable.id, { onDelete: "cascade" })
 });
 var insertCommentSchema = createInsertSchema(commentsTable).omit({ id: true, createdAt: true });
 
@@ -82727,6 +82728,7 @@ router15.get("/posts/:postId/comments", async (req, res) => {
     userId: commentsTable.userId,
     content: commentsTable.content,
     createdAt: commentsTable.createdAt,
+    parentId: commentsTable.parentId,
     username: usersTable.username,
     displayName: usersTable.displayName,
     avatarUrl: usersTable.avatarUrl,
@@ -82745,7 +82747,7 @@ router15.post("/posts/:postId/comments", async (req, res) => {
     res.status(400).json({ message: "Invalid postId" });
     return;
   }
-  const { content } = req.body ?? {};
+  const { content, parentId } = req.body ?? {};
   if (typeof content !== "string" || content.trim().length === 0 || content.length > 1e3) {
     res.status(400).json({ message: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439: 1\u20131000 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432" });
     return;
@@ -82755,7 +82757,25 @@ router15.post("/posts/:postId/comments", async (req, res) => {
     res.status(401).json({ message: "User not found" });
     return;
   }
-  const [{ id: newId }] = await db.insert(commentsTable).values({ postId, userId: user.id, content: content.trim() }).$returningId();
+  if (parentId != null) {
+    const pid = parseInt(parentId);
+    if (isNaN(pid)) {
+      res.status(400).json({ message: "Invalid parentId" });
+      return;
+    }
+    const [parent] = await db.select({ id: commentsTable.id, postId: commentsTable.postId }).from(commentsTable).where(eq(commentsTable.id, pid));
+    if (!parent) {
+      res.status(404).json({ message: "\u0420\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u0441\u043A\u0438\u0439 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D" });
+      return;
+    }
+    if (parent.postId !== postId) {
+      res.status(400).json({ message: "\u0420\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u0441\u043A\u0438\u0439 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u043F\u0440\u0438\u043D\u0430\u0434\u043B\u0435\u0436\u0438\u0442 \u0434\u0440\u0443\u0433\u043E\u043C\u0443 \u043F\u043E\u0441\u0442\u0443" });
+      return;
+    }
+  }
+  const insertData = { postId, userId: user.id, content: content.trim() };
+  if (parentId != null) insertData.parentId = parseInt(parentId);
+  const [{ id: newId }] = await db.insert(commentsTable).values(insertData).$returningId();
   const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, newId));
   res.status(201).json({ ...comment, username: tokenUser.username, displayName: tokenUser.displayName, role: user.role });
 });

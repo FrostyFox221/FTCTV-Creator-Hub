@@ -29,6 +29,7 @@ router.get("/posts/:postId/comments", async (req, res) => {
       userId: commentsTable.userId,
       content: commentsTable.content,
       createdAt: commentsTable.createdAt,
+      parentId: commentsTable.parentId,
       username: usersTable.username,
       displayName: usersTable.displayName,
       avatarUrl: usersTable.avatarUrl,
@@ -50,7 +51,7 @@ router.post("/posts/:postId/comments", async (req, res) => {
   const postId = parseInt(req.params.postId);
   if (isNaN(postId)) { res.status(400).json({ message: "Invalid postId" }); return; }
 
-  const { content } = req.body ?? {};
+  const { content, parentId } = req.body ?? {};
   if (typeof content !== "string" || content.trim().length === 0 || content.length > 1000) {
     res.status(400).json({ message: "Комментарий: 1–1000 символов" }); return;
   }
@@ -58,7 +59,18 @@ router.post("/posts/:postId/comments", async (req, res) => {
   const [user] = await db.select({ id: usersTable.id, role: usersTable.role }).from(usersTable).where(eq(usersTable.username, tokenUser.username));
   if (!user) { res.status(401).json({ message: "User not found" }); return; }
 
-  const [{ id: newId }] = await db.insert(commentsTable).values({ postId, userId: user.id, content: content.trim() }).$returningId();
+  // Validate parentId if provided
+  if (parentId != null) {
+    const pid = parseInt(parentId);
+    if (isNaN(pid)) { res.status(400).json({ message: "Invalid parentId" }); return; }
+    const [parent] = await db.select({ id: commentsTable.id, postId: commentsTable.postId }).from(commentsTable).where(eq(commentsTable.id, pid));
+    if (!parent) { res.status(404).json({ message: "Родительский комментарий не найден" }); return; }
+    if (parent.postId !== postId) { res.status(400).json({ message: "Родительский комментарий принадлежит другому посту" }); return; }
+  }
+
+  const insertData: any = { postId, userId: user.id, content: content.trim() };
+  if (parentId != null) insertData.parentId = parseInt(parentId);
+  const [{ id: newId }] = await db.insert(commentsTable).values(insertData).$returningId();
   const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, newId));
   res.status(201).json({ ...comment, username: tokenUser.username, displayName: tokenUser.displayName, role: user.role });
 });

@@ -143,6 +143,7 @@ interface Comment {
   displayName: string;
   avatarUrl: string | null;
   role: string | null;
+  parentId: number | null;
 }
 
 function ReactionsAndComments({ postId }: { postId: number }) {
@@ -152,6 +153,8 @@ function ReactionsAndComments({ postId }: { postId: number }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   const headers: Record<string, string> = {};
   if (session) headers["Authorization"] = `Bearer ${session.token}`;
@@ -207,9 +210,29 @@ function ReactionsAndComments({ postId }: { postId: number }) {
     setSubmitting(false);
   };
 
+  const submitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoggedIn || !replyText.trim() || replyTo === null) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ content: replyText.trim(), parentId: replyTo }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setComments(prev => [...prev, { ...data, avatarUrl: session?.avatarUrl || null }]);
+        setReplyText("");
+        setReplyTo(null);
+      }
+    } catch {}
+    setSubmitting(false);
+  };
+
   const deleteComment = async (id: number) => {
     const res = await fetch(`/api/comments/${id}`, { method: "DELETE", headers });
-    if (res.ok) setComments(prev => prev.filter(c => c.id !== id));
+    if (res.ok) setComments(prev => prev.filter(c => c.id !== id && c.parentId !== id));
   };
 
   return (
@@ -272,34 +295,90 @@ function ReactionsAndComments({ postId }: { postId: number }) {
       )}
 
       <div className="space-y-4">
-        {comments.map(comment => (
-          <div key={comment.id} className="flex gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50">
-            <div className="w-8 h-8 rounded-full bg-muted border flex-shrink-0 flex items-center justify-center overflow-hidden">
-              {comment.avatarUrl ? (
-                <img src={comment.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-              ) : (
-                <User className="w-4 h-4 text-muted-foreground" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm font-bold truncate">{comment.displayName || comment.username}</span>
-                  {comment.role === "owner" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 leading-none flex-shrink-0">Владелец</span>}
-                  {comment.role === "administrator" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20 leading-none flex-shrink-0">Администратор</span>}
-                  {comment.role === "moderator" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20 leading-none flex-shrink-0">Модератор</span>}
+        {comments.filter(c => !c.parentId).map(comment => (
+          <div key={comment.id}>
+            {/* Top-level comment */}
+            <div className="flex gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50">
+              <div className="w-8 h-8 rounded-full bg-muted border flex-shrink-0 flex items-center justify-center overflow-hidden">
+                {comment.avatarUrl ? (
+                  <img src={comment.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                  <User className="w-4 h-4 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-bold truncate">{comment.displayName || comment.username}</span>
+                    {comment.role === "owner" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 leading-none flex-shrink-0">Владелец</span>}
+                    {comment.role === "administrator" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20 leading-none flex-shrink-0">Администратор</span>}
+                    {comment.role === "moderator" && <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20 leading-none flex-shrink-0">Модератор</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(comment.createdAt).toLocaleDateString("ru-RU")}</span>
+                    {session?.username === comment.username && (
+                      <button onClick={() => deleteComment(comment.id)} className="text-muted-foreground hover:text-destructive transition-colors" title="Удалить">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(comment.createdAt).toLocaleDateString("ru-RU")}</span>
-                  {session?.username === comment.username && (
-                    <button onClick={() => deleteComment(comment.id)} className="text-muted-foreground hover:text-destructive transition-colors" title="Удалить">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                <p className="text-sm text-foreground/80 break-words">{comment.content}</p>
+                {isLoggedIn && (
+                  <button onClick={() => { setReplyTo(replyTo === comment.id ? null : comment.id); setReplyText(""); }} className="text-xs font-semibold text-muted-foreground hover:text-primary mt-1.5 transition-colors">
+                    {replyTo === comment.id ? "Отмена" : "Ответить"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Reply form */}
+            {replyTo === comment.id && isLoggedIn && (
+              <form onSubmit={submitReply} className="flex gap-2 ml-10 mt-2">
+                <Input
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  placeholder={`Ответ для ${comment.displayName || comment.username}...`}
+                  maxLength={1000}
+                  className="flex-1 text-sm"
+                />
+                <Button type="submit" size="sm" disabled={submitting || !replyText.trim()}>
+                  <Send className="w-3.5 h-3.5" />
+                </Button>
+              </form>
+            )}
+
+            {/* Replies */}
+            {comments.filter(r => r.parentId === comment.id).map(reply => (
+              <div key={reply.id} className="flex gap-3 p-3 ml-10 mt-2 rounded-lg bg-secondary/20 border border-border/30">
+                <div className="w-7 h-7 rounded-full bg-muted border flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  {reply.avatarUrl ? (
+                    <img src={reply.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
                   )}
                 </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-xs font-bold truncate">{reply.displayName || reply.username}</span>
+                      {reply.role === "owner" && <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 leading-none flex-shrink-0">Владелец</span>}
+                      {reply.role === "administrator" && <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20 leading-none flex-shrink-0">Администратор</span>}
+                      {reply.role === "moderator" && <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20 leading-none flex-shrink-0">Модератор</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{new Date(reply.createdAt).toLocaleDateString("ru-RU")}</span>
+                      {session?.username === reply.username && (
+                        <button onClick={() => deleteComment(reply.id)} className="text-muted-foreground hover:text-destructive transition-colors" title="Удалить">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-foreground/80 break-words">{reply.content}</p>
+                </div>
               </div>
-              <p className="text-sm text-foreground/80 break-words">{comment.content}</p>
-            </div>
+            ))}
           </div>
         ))}
       </div>

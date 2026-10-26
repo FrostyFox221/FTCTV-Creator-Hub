@@ -10,6 +10,7 @@ export const commentsTable = mysqlTable("comments", {
   userId: int("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  parentId: int("parent_id").references((): any => commentsTable.id, { onDelete: "cascade" }),
 });
 
 export const insertCommentSchema = createInsertSchema(commentsTable).omit({ id: true, createdAt: true });

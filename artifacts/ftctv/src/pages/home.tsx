@@ -40,18 +40,18 @@ function BannerCarousel() {
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/80 mb-1.5">Реклама</p>
+        <div className="absolute bottom-0 left-0 right-0 p-3 md:p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/80 mb-1">Реклама</p>
           {b.link ? (
             <a href={b.link} target="_blank" rel="noopener noreferrer" className="group">
-              <h3 className="text-white font-black text-xl md:text-3xl uppercase tracking-tight leading-tight mb-1 group-hover:text-primary transition-colors">
+              <h3 className="text-white font-black text-base md:text-xl uppercase tracking-tight leading-tight mb-0.5 group-hover:text-primary transition-colors">
                 {b.title}
               </h3>
             </a>
           ) : (
-            <h3 className="text-white font-black text-xl md:text-3xl uppercase tracking-tight leading-tight mb-1">{b.title}</h3>
+            <h3 className="text-white font-black text-base md:text-xl uppercase tracking-tight leading-tight mb-0.5">{b.title}</h3>
           )}
-          {b.text && <p className="text-zinc-300 text-sm md:text-base font-light line-clamp-2">{b.text}</p>}
+          {b.text && <p className="text-zinc-300 text-xs md:text-sm font-light line-clamp-1">{b.text}</p>}
           {b.link && (
             <a href={b.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-primary uppercase tracking-wider hover:underline">
               Подробнее <ExternalLink className="w-3 h-3" />

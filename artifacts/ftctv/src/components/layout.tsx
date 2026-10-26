@@ -5,7 +5,7 @@ import logoPath from "/logo.png";
 import { useGetMaintenanceStatus, useGetLivestream } from "@workspace/api-client-react";
 import Maintenance from "./maintenance";
 import ComingSoon, { shouldShowComingSoon } from "./coming-soon";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useUserAuth } from "@/hooks/use-user-auth";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -15,6 +15,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { session, logout } = useUserAuth();
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem("ftctv_cookie_consent") === "accepted");
+  const logoWrapperRef = useRef<HTMLDivElement>(null);
 
   const { data: maintenance } = useGetMaintenanceStatus({ query: { queryKey: ["maintenance"] } });
   const { data: livestream } = useGetLivestream({ query: { queryKey: ["livestream"] } });
@@ -24,6 +25,96 @@ export function Layout({ children }: { children: React.ReactNode }) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // March 19 confetti on header logo — birthday celebration
+  const launchConfetti = useCallback(() => {
+    const wrapper = logoWrapperRef.current;
+    if (!wrapper) return;
+    const rect = wrapper.getBoundingClientRect();
+    const canvas = document.createElement("canvas");
+    canvas.style.position = "fixed";
+    canvas.style.left = "0";
+    canvas.style.top = "0";
+    canvas.style.width = "100vw";
+    canvas.style.height = "100vh";
+    canvas.style.pointerEvents = "none";
+    canvas.style.zIndex = "9999";
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext("2d")!;
+    const colors = ["#ff0", "#f0f", "#0ff", "#f00", "#0f0", "#00f", "#ff6600", "#ff69b4", "#7b68ee"];
+    const originX = rect.left + rect.width / 2;
+    const originY = rect.top + rect.height / 2;
+    interface Particle { x: number; y: number; vx: number; vy: number; color: string; size: number; life: number; rotation: number; rotSpeed: number; shape: number; }
+    const particles: Particle[] = [];
+    for (let i = 0; i < 80; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 5;
+      particles.push({
+        x: originX, y: originY,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 4 + Math.random() * 4,
+        life: 1,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        shape: Math.floor(Math.random() * 3),
+      });
+    }
+    let frame: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        if (p.life <= 0) continue;
+        alive = true;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.12;
+        p.life -= 0.012;
+        p.rotation += p.rotSpeed;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        if (p.shape === 0) {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        } else if (p.shape === 1) {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(0, -p.size / 2);
+          ctx.lineTo(p.size / 2, p.size / 2);
+          ctx.lineTo(-p.size / 2, p.size / 2);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (alive) { frame = requestAnimationFrame(animate); }
+      else { canvas.remove(); }
+    };
+    frame = requestAnimationFrame(animate);
+    return () => { cancelAnimationFrame(frame); canvas.remove(); };
+  }, []);
+
+  useEffect(() => {
+    const now = new Date();
+    if (now.getMonth() !== 2 || now.getDate() !== 19) return;
+    // Launch immediately
+    const cleanup1 = launchConfetti();
+    // Repeat every 30 seconds
+    const interval = setInterval(() => { launchConfetti(); }, 30000);
+    return () => {
+      cleanup1?.();
+      clearInterval(interval);
+    };
+  }, [launchConfetti]);
+
 
   const isAdminLoggedIn = !!localStorage.getItem("ftctv_admin_token");
   const isAdminPage = location === "/admin" || location.startsWith("/admin");
@@ -90,7 +181,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Main header row */}
         <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <img src={logoPath} alt="FTCTV" className="h-7 w-auto invert dark:invert-0 dark:brightness-150 transition-all" />
+            <div ref={logoWrapperRef} className="relative">
+              <img src={logoPath} alt="FTCTV" className="h-7 w-auto invert dark:invert-0 dark:brightness-150 transition-all" />
+            </div>
           </Link>
 
           {/* Desktop nav: Live + Schedule pills */}
