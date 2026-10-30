@@ -16,6 +16,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { session, logout } = useUserAuth();
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem("ftctv_cookie_consent") === "accepted");
   const logoWrapperRef = useRef<HTMLDivElement>(null);
+  const [showBirthdayText, setShowBirthdayText] = useState(false);
+  const getBirthdayYears = useCallback(() => {
+    const y = new Date().getFullYear() - 2025;
+    const mod10 = y % 10; const mod100 = y % 100;
+    const word = (mod100 >= 11 && mod100 <= 14) ? "ЛЕТ" : mod10 === 1 ? "ГОД" : (mod10 >= 2 && mod10 <= 4) ? "ГОДА" : "ЛЕТ";
+    return `${y} ${word}`;
+  }, []);
 
   const { data: maintenance } = useGetMaintenanceStatus({ query: { queryKey: ["maintenance"] } });
   const { data: livestream } = useGetLivestream({ query: { queryKey: ["livestream"] } });
@@ -105,14 +112,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const now = new Date();
     if (now.getMonth() !== 2 || now.getDate() !== 19) return;
-    // Launch immediately
-    const cleanup1 = launchConfetti();
-    // Repeat every 30 seconds
-    const interval = setInterval(() => { launchConfetti(); }, 30000);
-    return () => {
-      cleanup1?.();
-      clearInterval(interval);
+    const fire = () => {
+      launchConfetti();
+      setShowBirthdayText(true);
+      setTimeout(() => setShowBirthdayText(false), 4000);
     };
+    fire();
+    const interval = setInterval(fire, 30000);
+    return () => { clearInterval(interval); };
   }, [launchConfetti]);
 
 
@@ -181,8 +188,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Main header row */}
         <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div ref={logoWrapperRef} className="relative">
-              <img src={logoPath} alt="FTCTV" className="h-7 w-auto invert dark:invert-0 dark:brightness-150 transition-all" />
+            <div ref={logoWrapperRef} className="relative overflow-hidden">
+              <img src={logoPath} alt="FTCTV" className={`h-7 w-auto invert dark:invert-0 dark:brightness-150 transition-opacity duration-700 ${showBirthdayText ? "opacity-0" : "opacity-100"}`} />
+              <span className={`absolute inset-0 flex items-center whitespace-nowrap font-black text-sm md:text-base tracking-tight bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 bg-clip-text text-transparent transition-opacity duration-700 ${showBirthdayText ? "opacity-100" : "opacity-0"}`}>
+                <span className="md:hidden">{getBirthdayYears()} ВМЕСТЕ</span>
+                <span className="hidden md:inline">{getBirthdayYears()} ВМЕСТЕ С ТОБОЙ</span>
+              </span>
             </div>
           </Link>
 
