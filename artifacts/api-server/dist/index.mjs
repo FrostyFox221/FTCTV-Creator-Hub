@@ -82981,7 +82981,10 @@ router18.get("/image-proxy", async (req, res) => {
   }
   const allowed = [
     "api.telegram.org",
-    "telegram.org"
+    "telegram.org",
+    "cdn-telegram.org",
+    "telegram-cdn.org",
+    "t.me"
   ];
   try {
     const parsed = new URL(url2);

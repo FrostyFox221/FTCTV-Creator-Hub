@@ -105,7 +105,7 @@ export default function PostDetail() {
 
       {post.images?.[0] && !post.videoUrl && (
         <div className="mb-12 w-full max-h-[600px] rounded-2xl overflow-hidden bg-muted shadow-lg border border-border/50 flex justify-center">
-          <img src={getImageUrl(post.images[0])} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
+          <img src={getImageUrl(post.images[0])} alt={post.title} className="w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
         </div>
       )}
 
@@ -121,7 +121,7 @@ export default function PostDetail() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             {post.images.slice(1).map((img, i) => (
               <a key={i} href={getImageUrl(img)} target="_blank" rel="noreferrer" className="block aspect-square rounded-xl overflow-hidden bg-muted hover:opacity-90 hover:shadow-md transition-all border border-border/50">
-                <img src={getImageUrl(img)} alt="" className="w-full h-full object-cover" loading="lazy" />
+                <img src={getImageUrl(img)} alt="" className="w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
               </a>
             ))}
           </div>

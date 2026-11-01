@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Send, ChevronRight, MonitorPlay } from "lucide-react";
 import { formatDate } from "@/lib/format";
-import { getImageUrl } from "@/lib/image-url";
+import { getImageUrl, getImageCandidates } from "@/lib/image-url";
 
 interface TelegramPost {
   id: number;
@@ -12,6 +12,27 @@ interface TelegramPost {
   videoUrl: string | null;
   createdAt: string;
   source: string;
+}
+
+function FallbackImage({ candidates, alt, className }: { candidates: string[]; alt: string; className?: string }) {
+  const [idx, setIdx] = useState(0);
+  const [hidden, setHidden] = useState(false);
+  if (hidden || candidates.length === 0) return null;
+  return (
+    <img
+      src={candidates[idx]}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      onError={() => {
+        if (idx + 1 < candidates.length) {
+          setIdx(idx + 1);
+        } else {
+          setHidden(true);
+        }
+      }}
+    />
+  );
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -82,13 +103,12 @@ export default function TelegramNewsFeed() {
               href={`/post/${post.id}`}
               className="group flex flex-col bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
             >
-              {post.images?.[0] ? (
+              {post.images?.length ? (
                 <div className="relative aspect-[16/10] bg-muted overflow-hidden">
-                  <img
-                    src={getImageUrl(post.images[0])}
+                  <FallbackImage
+                    candidates={getImageCandidates(post.images)}
                     alt={post.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
                   />
                   {post.videoUrl && (
                     <div className="absolute top-2 left-2 bg-black/70 backdrop-blur px-1.5 py-0.5 rounded text-white text-[9px] font-bold uppercase flex items-center gap-1">

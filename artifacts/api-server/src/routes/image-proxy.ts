@@ -18,6 +18,9 @@ router.get("/image-proxy", async (req: Request, res: Response) => {
   const allowed = [
     "api.telegram.org",
     "telegram.org",
+    "cdn-telegram.org",
+    "telegram-cdn.org",
+    "t.me",
   ];
 
   try {
