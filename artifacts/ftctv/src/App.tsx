@@ -26,6 +26,7 @@ const VideoDetail = lazy(() => import("@/pages/video-detail"));
 const VideoPlaylistPage = lazy(() => import("@/pages/video-playlist"));
 const About = lazy(() => import("@/pages/about"));
 const Privacy = lazy(() => import("@/pages/privacy"));
+const Afisha = lazy(() => import("@/pages/afisha"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 // Minimal loading spinner for route transitions
@@ -63,6 +64,7 @@ function Router() {
           <Route path="/videos" component={Videos} />
           <Route path="/videos/:id" component={VideoDetail} />
           <Route path="/about" component={About} />
+          <Route path="/afisha" component={Afisha} />
           <Route path="/privacy" component={Privacy} />
           <Route component={NotFound} />
         </Switch>

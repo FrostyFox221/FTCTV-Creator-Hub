@@ -22,6 +22,7 @@ import galleryRouter from "./gallery";
 import videoRouter from "./video";
 import hourlyNewsRouter from "./hourly-news";
 import tickerRouter from "./ticker";
+import afishaRouter from "./afisha";
 
 const router: IRouter = Router();
 
@@ -48,5 +49,6 @@ router.use(galleryRouter);
 router.use(videoRouter);
 router.use(hourlyNewsRouter);
 router.use(tickerRouter);
+router.use(afishaRouter);
 
 export default router;

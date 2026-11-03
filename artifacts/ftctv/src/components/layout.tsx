@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/hooks/use-theme";
-import { Moon, Sun, Lock, Menu, X, PlayCircle, User, LogOut, Calendar, Image, Video, FileText } from "lucide-react";
+import { Moon, Sun, Lock, Menu, X, PlayCircle, User, LogOut, Calendar, Image, Video, FileText, Ticket } from "lucide-react";
 import logoPath from "/logo.png";
 import { useGetMaintenanceStatus, useGetLivestream } from "@workspace/api-client-react";
 import Maintenance from "./maintenance";
@@ -253,6 +253,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/videos" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/videos' || location.startsWith('/videos/') ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
               <Video className="w-4 h-4" /> Видео
             </Link>
+            <Link href="/afisha" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider p-3 rounded-lg ${location === '/afisha' ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-secondary'}`}>
+              <Ticket className="w-4 h-4" /> Афиша
+            </Link>
             <div className="border-t pt-3 flex flex-col gap-2">
               {session ? (
                 <>
@@ -295,6 +298,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/media/articles" className="hover:text-white transition-colors text-sm">Статьи</Link>
             <Link href="/gallery" className="hover:text-white transition-colors text-sm">Галерея</Link>
             <Link href="/videos" className="hover:text-white transition-colors text-sm">Видео</Link>
+            <Link href="/afisha" className="hover:text-white transition-colors text-sm">Афиша</Link>
             <Link href="/about" className="hover:text-white transition-colors text-sm">О нас</Link>
             <Link href="/privacy" className="hover:text-white transition-colors text-sm">Политика конфиденциальности</Link>
             <Link href="/login" className="hover:text-white transition-colors text-sm">Войти / Регистрация</Link>
