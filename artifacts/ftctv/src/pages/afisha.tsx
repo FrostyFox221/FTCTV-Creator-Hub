@@ -91,8 +91,8 @@ const CITIES: City[] = [
   { slug: "magnitogorsk", name: "Магнитогорск" },
 ];
 
-const KUDAGO_API = "https://kudago.com/public-api/v1.4";
-const KUDAGO_FIELDS = "id,title,slug,description,body_text,dates,images,location,place,price,categories,site_url,age_restriction,is_free";
+/* ─── API: use our backend which has fallback cache ─── */
+const AFISHA_API = "/api/afisha";
 
 /* ─── Helpers ─── */
 function formatEventDate(ts: number): string {
@@ -108,17 +108,16 @@ function formatEventTime(ts: number): string {
   return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
 
-async function fetchKudaGoEvents(city: string, page: number, pageSize: number): Promise<{ results: KudaGoEvent[]; count: number; notice?: string }> {
+async function fetchAfishaEvents(city: string, page: number, pageSize: number): Promise<{ results: KudaGoEvent[]; count: number; notice?: string }> {
   try {
-    const now = Math.floor(Date.now() / 1000);
-    const url = `${KUDAGO_API}/events/?location=${city}&page=${page}&page_size=${pageSize}&actual_since=${now}&fields=${KUDAGO_FIELDS}&expand=place&order_by=-publication_date&text_format=text`;
+    const url = `${AFISHA_API}/events?city=${encodeURIComponent(city)}&page=${page}&page_size=${pageSize}`;
     const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`KudaGo ${resp.status}`);
+    if (!resp.ok) throw new Error(`Afisha API ${resp.status}`);
     const data = await resp.json();
     return { results: data.results ?? [], count: data.count ?? 0 };
   } catch (e) {
-    console.warn("KudaGo fetch failed:", e);
-    return { results: [], count: 0, notice: "Сервис событий временно недоступен. Попробуйте позже." };
+    console.warn("Afisha fetch failed:", e);
+    return { results: [], count: 0 };
   }
 }
 
@@ -137,7 +136,7 @@ export default function AfishaPage() {
 
   const { data: eventsData, isLoading: eventsLoading, isFetching } = useQuery<{ results: KudaGoEvent[]; count: number; notice?: string }>({
     queryKey: ["afisha-events", selectedCity, page],
-    queryFn: () => fetchKudaGoEvents(selectedCity, page, pageSize),
+    queryFn: () => fetchAfishaEvents(selectedCity, page, pageSize),
     staleTime: 10 * 60 * 1000,
   });
 

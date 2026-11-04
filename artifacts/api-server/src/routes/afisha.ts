@@ -1,6 +1,20 @@
 import { Router, type Request, type Response } from "express";
+import * as fs from "fs";
+import * as path from "path";
 
 const router = Router();
+
+/* ---------- Fallback event cache (generated offline) ---------- */
+let fallbackEvents: Record<string, any[]> = {};
+try {
+  const cachePath = path.join(__dirname, "..", "events-cache.json");
+  if (fs.existsSync(cachePath)) {
+    fallbackEvents = JSON.parse(fs.readFileSync(cachePath, "utf-8"));
+    console.log(`[afisha] Loaded fallback cache: ${Object.keys(fallbackEvents).length} cities`);
+  }
+} catch (e) {
+  console.warn("[afisha] Could not load fallback events cache:", e);
+}
 
 /**
  * KudaGo proxy — events and locations for the Afisha section.
@@ -108,6 +122,19 @@ router.get("/afisha/cities", async (_req: Request, res: Response) => {
 });
 
 /** GET /afisha/events?city=khabarovsk&page=1&page_size=20&category= */
+/* Helper: serve events from the offline fallback cache */
+function serveFallback(city: string, page: number, pageSize: number, category: string) {
+  let items = fallbackEvents[city] || fallbackEvents["msk"] || [];
+  if (category) {
+    items = items.filter((e: any) => e.categories && e.categories.includes(category));
+  }
+  const total = items.length;
+  const start = (page - 1) * pageSize;
+  const slice = items.slice(start, start + pageSize);
+  return { results: slice, count: total, next: start + pageSize < total ? `page=${page + 1}` : null };
+}
+
+/** GET /afisha/events?city=khabarovsk&page=1&page_size=20&category= */
 router.get("/afisha/events", async (req: Request, res: Response) => {
   const city = (req.query.city as string) || "khabarovsk";
   const page = parseInt(req.query.page as string) || 1;
@@ -128,26 +155,39 @@ router.get("/afisha/events", async (req: Request, res: Response) => {
 
     const resp = await fetch(url, { headers: { "User-Agent": "FTCTV/1.0" } });
     if (!resp.ok) {
-      res.json({ results: [], count: 0, notice: "Сервис событий временно недоступен. Попробуйте позже." });
+      // KudaGo unavailable — use fallback cache
+      const fb = serveFallback(city, page, pageSize, category);
+      eventsCache.set(cacheKey, { data: fb, ts: Date.now() });
+      res.json(fb);
       return;
     }
     const data = await resp.json();
     eventsCache.set(cacheKey, { data, ts: Date.now() });
     res.json(data);
   } catch {
-    res.json({ results: [], count: 0, notice: "Сервис событий временно недоступен. Попробуйте позже." });
+    // Network error — use fallback cache
+    const fb = serveFallback(city, page, pageSize, category);
+    eventsCache.set(cacheKey, { data: fb, ts: Date.now() });
+    res.json(fb);
   }
 });
 
 /** GET /afisha/categories */
+const FALLBACK_CATEGORIES = [
+  { slug: "theater", name: "Театр" },
+  { slug: "concert", name: "Концерты" },
+  { slug: "exhibition", name: "Выставки" },
+  { slug: "festival", name: "Фестивали" },
+];
+
 router.get("/afisha/categories", async (_req: Request, res: Response) => {
   try {
     const resp = await fetch("https://kudago.com/public-api/v1.4/event-categories/?lang=ru", { headers: { "User-Agent": "FTCTV/1.0" } });
-    if (!resp.ok) { res.json([]); return; }
+    if (!resp.ok) { res.json(FALLBACK_CATEGORIES); return; }
     const data = await resp.json();
-    res.json(data);
+    res.json(Array.isArray(data) && data.length > 0 ? data : FALLBACK_CATEGORIES);
   } catch {
-    res.json([]);
+    res.json(FALLBACK_CATEGORIES);
   }
 });
 
