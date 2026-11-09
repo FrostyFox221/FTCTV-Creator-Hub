@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { livestreamTable } from "@workspace/db";
+import { livestreamTable, livestreamSourceTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { UpdateLivestreamBody } from "@workspace/api-zod";
 
@@ -61,6 +61,69 @@ router.put("/livestream", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Livestream update error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+// --- Livestream Sources ---
+
+router.get("/livestream/sources", async (req, res) => {
+  try {
+    const sources = await db.select().from(livestreamSourceTable);
+    return res.json(sources);
+  } catch (err) {
+    req.log.error({ err }, "Livestream sources get error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/livestream/sources", async (req, res) => {
+  if (!verifyAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const { label, streamUrl, streamType } = req.body;
+    if (!label || !streamUrl || !streamType) return res.status(400).json({ error: "label, streamUrl, streamType required" });
+    const [{ id }] = await db.insert(livestreamSourceTable).values({ label, streamUrl, streamType, isActive: false }).$returningId();
+    const [row] = await db.select().from(livestreamSourceTable).where(eq(livestreamSourceTable.id, id));
+    return res.json(row);
+  } catch (err) {
+    req.log.error({ err }, "Livestream source create error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/livestream/sources/:id", async (req, res) => {
+  if (!verifyAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const id = Number(req.params.id);
+    await db.delete(livestreamSourceTable).where(eq(livestreamSourceTable.id, id));
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Livestream source delete error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/livestream/sources/:id/activate", async (req, res) => {
+  if (!verifyAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const id = Number(req.params.id);
+    // Deactivate all
+    await db.update(livestreamSourceTable).set({ isActive: false });
+    // Activate selected
+    await db.update(livestreamSourceTable).set({ isActive: true }).where(eq(livestreamSourceTable.id, id));
+    // Get source and update main livestream
+    const [source] = await db.select().from(livestreamSourceTable).where(eq(livestreamSourceTable.id, id));
+    if (source) {
+      const ls = await ensureLivestream();
+      await db.update(livestreamTable)
+        .set({ streamUrl: source.streamUrl, streamType: source.streamType, updatedAt: new Date() })
+        .where(eq(livestreamTable.id, ls.id));
+    }
+    const sources = await db.select().from(livestreamSourceTable);
+    return res.json(sources);
+  } catch (err) {
+    req.log.error({ err }, "Livestream source activate error");
     return res.status(500).json({ error: "Internal server error" });
   }
 });

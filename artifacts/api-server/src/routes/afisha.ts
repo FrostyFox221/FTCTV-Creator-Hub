@@ -103,7 +103,7 @@ router.get("/afisha/cities", async (_req: Request, res: Response) => {
       res.json(EXTRA_CITIES);
       return;
     }
-    const json = await resp.json();
+    const json: any = await resp.json();
     const kudaCities: { slug: string; name: string }[] = json.results || json || [];
 
     // Merge: KudaGo cities + extras not already present

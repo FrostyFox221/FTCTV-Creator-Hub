@@ -938,6 +938,19 @@ function LiveTab() {
     streamType: "youtube"
   });
 
+  // Sources state
+  const [sources, setSources] = useState<any[]>([]);
+  const [newSource, setNewSource] = useState({ label: "", streamUrl: "", streamType: "youtube" });
+  const [showAddSource, setShowAddSource] = useState(false);
+  const [sourcesLoading, setSourcesLoading] = useState(false);
+
+  const fetchSources = async () => {
+    try {
+      const res = await fetch("/api/livestream/sources");
+      if (res.ok) setSources(await res.json());
+    } catch {}
+  };
+
   useEffect(() => {
     if (live) {
       setForm({
@@ -949,6 +962,8 @@ function LiveTab() {
       });
     }
   }, [live]);
+
+  useEffect(() => { fetchSources(); }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -964,8 +979,54 @@ function LiveTab() {
     }
   };
 
+  const handleAddSource = async () => {
+    if (!newSource.label || !newSource.streamUrl) {
+      toast({ title: "Заполните название и ссылку", variant: "destructive" });
+      return;
+    }
+    setSourcesLoading(true);
+    try {
+      await fetchWithToken('/api/livestream/sources', {
+        method: "POST",
+        body: JSON.stringify(newSource)
+      });
+      toast({ title: "Источник добавлен" });
+      setNewSource({ label: "", streamUrl: "", streamType: "youtube" });
+      setShowAddSource(false);
+      fetchSources();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally { setSourcesLoading(false); }
+  };
+
+  const handleDeleteSource = async (id: number) => {
+    setSourcesLoading(true);
+    try {
+      await fetchWithToken(`/api/livestream/sources/${id}`, { method: "DELETE" });
+      toast({ title: "Источник удалён" });
+      fetchSources();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally { setSourcesLoading(false); }
+  };
+
+  const handleActivateSource = async (id: number) => {
+    setSourcesLoading(true);
+    try {
+      await fetchWithToken(`/api/livestream/sources/${id}/activate`, { method: "PUT" });
+      toast({ title: "Источник активирован" });
+      fetchSources();
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Ошибка", description: e.message, variant: "destructive" });
+    } finally { setSourcesLoading(false); }
+  };
+
+  const platformLabel = (t: string) => t === "youtube" ? "YouTube" : t === "vk" ? "ВКонтакте" : t === "telegram" ? "Telegram" : t;
+
   return (
-    <form onSubmit={handleSave} className="p-6 md:p-8 flex flex-col gap-6 max-w-3xl">
+    <div className="p-6 md:p-8 flex flex-col gap-6 max-w-3xl">
+      {/* Status toggle */}
       <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border ${form.isLive ? 'bg-red-500/5 border-red-500/20' : 'bg-secondary/50 border-border'}`}>
         <div>
           <h3 className="font-bold uppercase tracking-tight text-lg flex items-center gap-2">
@@ -985,43 +1046,106 @@ function LiveTab() {
           <span className="ml-3 text-sm font-bold uppercase tracking-wider">{form.isLive ? 'Включен' : 'Выключен'}</span>
         </label>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="flex flex-col gap-2 md:col-span-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок эфира</label>
-          <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Например: Прямая линия с губернатором" />
+
+      {/* Sources list */}
+      <div className="border rounded-xl overflow-hidden">
+        <div className="p-4 bg-secondary/30 border-b flex justify-between items-center">
+          <div>
+            <h3 className="font-bold uppercase tracking-tight text-sm">Источники трансляции</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Сохраняйте несколько ссылок и переключайтесь между ними</p>
+          </div>
+          <Button type="button" size="sm" variant="outline" onClick={() => setShowAddSource(!showAddSource)} className="uppercase font-bold tracking-wider text-xs rounded-full gap-1">
+            <Plus className="w-3.5 h-3.5" /> Добавить
+          </Button>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Платформа</label>
-          <select 
-            value={form.streamType} 
-            onChange={e => setForm({...form, streamType: e.target.value})}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="youtube">YouTube</option>
-            <option value="vk">ВКонтакте</option>
-            <option value="telegram">Telegram</option>
-          </select>
-        </div>
+        {showAddSource && (
+          <div className="p-4 border-b bg-blue-500/5 space-y-3">
+            <Input value={newSource.label} onChange={e => setNewSource({...newSource, label: e.target.value})} placeholder="Название (например: YouTube основной)" className="text-sm" />
+            <div className="flex gap-2">
+              <select value={newSource.streamType} onChange={e => setNewSource({...newSource, streamType: e.target.value})} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-40">
+                <option value="youtube">YouTube</option>
+                <option value="vk">ВКонтакте</option>
+                <option value="telegram">Telegram</option>
+              </select>
+              <Input value={newSource.streamUrl} onChange={e => setNewSource({...newSource, streamUrl: e.target.value})} placeholder="Ссылка или ID видео" className="flex-1 text-sm" />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" size="sm" variant="ghost" onClick={() => setShowAddSource(false)} className="text-xs">Отмена</Button>
+              <Button type="button" size="sm" onClick={handleAddSource} disabled={sourcesLoading} className="uppercase font-bold tracking-wider text-xs rounded-full">Сохранить</Button>
+            </div>
+          </div>
+        )}
 
-        <div className="flex flex-col gap-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Ссылка или ID видео</label>
-          <Input value={form.streamUrl} onChange={e => setForm({...form, streamUrl: e.target.value})} placeholder="https://..." />
-        </div>
-
-        <div className="flex flex-col gap-2 md:col-span-2">
-          <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Описание (под плеером)</label>
-          <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={4} placeholder="Краткое описание того, что происходит в эфире" />
-        </div>
+        {sources.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">Нет сохранённых источников</div>
+        ) : (
+          <div className="divide-y">
+            {sources.map(s => (
+              <div key={s.id} className={`p-3 flex items-center gap-3 ${s.isActive ? 'bg-primary/5' : ''}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm truncate">{s.label}</span>
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-secondary font-bold text-muted-foreground">{platformLabel(s.streamType)}</span>
+                    {s.isActive && <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold">Активный</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{s.streamUrl}</p>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  {!s.isActive && (
+                    <Button type="button" size="sm" variant="outline" onClick={() => handleActivateSource(s.id)} disabled={sourcesLoading} className="text-xs rounded-full h-7 px-3">
+                      Выбрать
+                    </Button>
+                  )}
+                  <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteSource(s.id)} disabled={sourcesLoading} className="text-xs text-destructive hover:text-destructive h-7 w-7 p-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="pt-4 border-t flex justify-end">
-        <Button type="submit" disabled={isLoading} className="uppercase font-bold tracking-wider rounded-full px-8">
-          {isLoading ? "Сохранение..." : "Сохранить"}
-        </Button>
-      </div>
-    </form>
+      {/* Main form */}
+      <form onSubmit={handleSave} className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Заголовок эфира</label>
+            <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Например: Прямая линия с губернатором" />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Платформа</label>
+            <select 
+              value={form.streamType} 
+              onChange={e => setForm({...form, streamType: e.target.value})}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="youtube">YouTube</option>
+              <option value="vk">ВКонтакте</option>
+              <option value="telegram">Telegram</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Ссылка или ID видео</label>
+            <Input value={form.streamUrl} onChange={e => setForm({...form, streamUrl: e.target.value})} placeholder="https://..." />
+          </div>
+
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <label className="font-bold uppercase text-xs text-muted-foreground tracking-wider">Описание (под плеером)</label>
+            <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={4} placeholder="Краткое описание того, что происходит в эфире" />
+          </div>
+        </div>
+
+        <div className="pt-4 border-t flex justify-end">
+          <Button type="submit" disabled={isLoading} className="uppercase font-bold tracking-wider rounded-full px-8">
+            {isLoading ? "Сохранение..." : "Сохранить"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -2121,6 +2245,8 @@ function VideosTab() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingFileName, setUploadingFileName] = useState("");
+  const [uploadingFileSize, setUploadingFileSize] = useState(0);
 
   // Form state
   const [form, setForm] = useState({ title: "", description: "", videoUrl: "", thumbnailUrl: "", duration: "" });
@@ -2269,6 +2395,8 @@ function VideosTab() {
       return;
     }
     setIsUploading(true);
+    setUploadingFileName(file.name);
+    setUploadingFileSize(file.size);
     setUploadProgress(10);
     try {
       const fd = new FormData();
@@ -2295,6 +2423,8 @@ function VideosTab() {
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      setUploadingFileName("");
+      setUploadingFileSize(0);
     }
   };
 
@@ -2368,6 +2498,30 @@ function VideosTab() {
 
   return (
     <div className="flex flex-col">
+
+      {/* Upload overlay */}
+      {isUploading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 flex flex-col items-center gap-5">
+            <div className="relative w-16 h-16">
+              <svg className="w-16 h-16 animate-spin" viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" className="text-muted/30" />
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" strokeDasharray={`${uploadProgress * 1.76} 176`} strokeLinecap="round" className="text-primary transition-all duration-300" style={{ transformOrigin: 'center', transform: 'rotate(-90deg)' }} />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">{uploadProgress}%</span>
+            </div>
+            <div className="text-center space-y-1">
+              <p className="font-bold text-sm uppercase tracking-wider">Загрузка видео…</p>
+              {uploadingFileName && <p className="text-xs text-muted-foreground truncate max-w-[280px]">{uploadingFileName}</p>}
+              {uploadingFileSize > 0 && <p className="text-xs text-muted-foreground">{formatSize(uploadingFileSize)}</p>}
+            </div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div className="bg-primary h-full transition-all duration-300 rounded-full" style={{ width: `${uploadProgress}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="p-6 border-b bg-secondary/30 flex justify-between items-center">
         <div>
