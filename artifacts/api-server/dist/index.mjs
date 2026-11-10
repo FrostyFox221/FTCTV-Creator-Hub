@@ -68198,6 +68198,7 @@ __export(schema_exports, {
   insertGalleryPhotoSchema: () => insertGalleryPhotoSchema,
   insertHourlyNewsSchema: () => insertHourlyNewsSchema,
   insertLivestreamSchema: () => insertLivestreamSchema,
+  insertLivestreamSourceSchema: () => insertLivestreamSourceSchema,
   insertPostSchema: () => insertPostSchema,
   insertReactionSchema: () => insertReactionSchema,
   insertScheduleSchema: () => insertScheduleSchema,
@@ -68207,6 +68208,7 @@ __export(schema_exports, {
   insertVideoPlaylistItemSchema: () => insertVideoPlaylistItemSchema,
   insertVideoPlaylistSchema: () => insertVideoPlaylistSchema,
   insertVideoSchema: () => insertVideoSchema,
+  livestreamSourceTable: () => livestreamSourceTable,
   livestreamTable: () => livestreamTable,
   postsTable: () => postsTable,
   reactionsTable: () => reactionsTable,
@@ -79840,6 +79842,17 @@ var tickerCacheTable = mysqlTable("ticker_cache", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// ../../lib/db/src/schema/livestreamSource.ts
+var livestreamSourceTable = mysqlTable("livestream_sources", {
+  id: int("id").primaryKey().autoincrement(),
+  label: text("label").notNull(),
+  streamUrl: text("stream_url").notNull(),
+  streamType: text("stream_type").notNull(),
+  isActive: boolean("is_active").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow()
+});
+var insertLivestreamSourceSchema = createInsertSchema(livestreamSourceTable).omit({ id: true });
+
 // ../../lib/db/src/index.ts
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -80240,6 +80253,57 @@ router5.put("/livestream", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Livestream update error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+router5.get("/livestream/sources", async (req, res) => {
+  try {
+    const sources = await db.select().from(livestreamSourceTable);
+    return res.json(sources);
+  } catch (err) {
+    req.log.error({ err }, "Livestream sources get error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+router5.post("/livestream/sources", async (req, res) => {
+  if (!verifyAdmin2(req)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const { label, streamUrl, streamType } = req.body;
+    if (!label || !streamUrl || !streamType) return res.status(400).json({ error: "label, streamUrl, streamType required" });
+    const [{ id }] = await db.insert(livestreamSourceTable).values({ label, streamUrl, streamType, isActive: false }).$returningId();
+    const [row] = await db.select().from(livestreamSourceTable).where(eq(livestreamSourceTable.id, id));
+    return res.json(row);
+  } catch (err) {
+    req.log.error({ err }, "Livestream source create error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+router5.delete("/livestream/sources/:id", async (req, res) => {
+  if (!verifyAdmin2(req)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const id = Number(req.params.id);
+    await db.delete(livestreamSourceTable).where(eq(livestreamSourceTable.id, id));
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Livestream source delete error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+router5.put("/livestream/sources/:id/activate", async (req, res) => {
+  if (!verifyAdmin2(req)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const id = Number(req.params.id);
+    await db.update(livestreamSourceTable).set({ isActive: false });
+    await db.update(livestreamSourceTable).set({ isActive: true }).where(eq(livestreamSourceTable.id, id));
+    const [source] = await db.select().from(livestreamSourceTable).where(eq(livestreamSourceTable.id, id));
+    if (source) {
+      const ls = await ensureLivestream();
+      await db.update(livestreamTable).set({ streamUrl: source.streamUrl, streamType: source.streamType, updatedAt: /* @__PURE__ */ new Date() }).where(eq(livestreamTable.id, ls.id));
+    }
+    const sources = await db.select().from(livestreamSourceTable);
+    return res.json(sources);
+  } catch (err) {
+    req.log.error({ err }, "Livestream source activate error");
     return res.status(500).json({ error: "Internal server error" });
   }
 });

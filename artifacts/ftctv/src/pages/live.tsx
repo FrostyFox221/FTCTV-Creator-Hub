@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { useGetLivestream, useGetPosts, useGetSchedule } from "@workspace/api-client-react";
-import { Radio, Calendar, MessageCircle, ChevronRight, Play, Star, Clock } from "lucide-react";
+import { Radio, Calendar, MessageCircle, ChevronRight, Play, Star, Clock, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { formatDate } from "@/lib/format";
 
@@ -7,6 +8,10 @@ export default function Live() {
   const { data: livestream, isLoading } = useGetLivestream({ query: { queryKey: ["livestream"] } });
   const { data: postsData } = useGetPosts({ limit: 3 }, { query: { queryKey: ["posts", 1, null] } });
   const { data: scheduleItems, isLoading: scheduleLoading } = useGetSchedule({ query: { queryKey: ["schedule"] } });
+  const [playerLoading, setPlayerLoading] = useState(true);
+
+  // Reset loading indicator when stream source changes
+  useEffect(() => { setPlayerLoading(true); }, [livestream?.streamUrl]);
 
   if (isLoading) {
     return (
@@ -22,28 +27,43 @@ export default function Live() {
   const renderPlayer = () => {
     if (!livestream?.streamUrl) return null;
 
+    const loadingOverlay = playerLoading ? (
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-900/90 transition-opacity duration-500">
+        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+        <p className="text-sm text-white/70 font-medium uppercase tracking-wider">Загрузка трансляции…</p>
+      </div>
+    ) : null;
+
     if (livestream.streamType === 'youtube') {
       let videoId = '';
       const match = livestream.streamUrl.match(/[?&]v=([^&]+)/) || livestream.streamUrl.match(/youtu\.be\/([^?]+)/);
       if (match) videoId = match[1];
 
       return (
-        <iframe 
-          className="w-full h-full absolute inset-0"
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-        />
+        <>
+          {loadingOverlay}
+          <iframe 
+            className="w-full h-full absolute inset-0"
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            onLoad={() => setPlayerLoading(false)}
+          />
+        </>
       );
     }
     
     if (livestream.streamType === 'vk') {
       return (
-        <iframe 
-          className="w-full h-full absolute inset-0"
-          src={livestream.streamUrl} 
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture;" 
-        />
+        <>
+          {loadingOverlay}
+          <iframe 
+            className="w-full h-full absolute inset-0"
+            src={livestream.streamUrl} 
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+            onLoad={() => setPlayerLoading(false)}
+          />
+        </>
       );
     }
 

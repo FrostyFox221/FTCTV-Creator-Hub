@@ -91,8 +91,9 @@ const CITIES: City[] = [
   { slug: "magnitogorsk", name: "Магнитогорск" },
 ];
 
-/* ─── API: use our backend which has fallback cache ─── */
-const AFISHA_API = "/api/afisha";
+/* ─── API endpoints ─── */
+const KUDAGO_API = "https://kudago.com/public-api/v1.4";
+const SERVER_API = "/api/afisha";
 
 /* ─── Helpers ─── */
 function formatEventDate(ts: number): string {
@@ -109,16 +110,37 @@ function formatEventTime(ts: number): string {
 }
 
 async function fetchAfishaEvents(city: string, page: number, pageSize: number): Promise<{ results: KudaGoEvent[]; count: number; notice?: string }> {
+  const now = Math.floor(Date.now() / 1000);
+
+  // 1) Try KudaGo directly from user's browser
   try {
-    const url = `${AFISHA_API}/events?city=${encodeURIComponent(city)}&page=${page}&page_size=${pageSize}`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`Afisha API ${resp.status}`);
-    const data = await resp.json();
-    return { results: data.results ?? [], count: data.count ?? 0 };
+    const url = `${KUDAGO_API}/events/?lang=ru&location=${encodeURIComponent(city)}&actual_since=${now}&page=${page}&page_size=${pageSize}&fields=id,title,description,body_text,dates,images,place,price,site_url,categories,short_title,age_restriction&expand=place&order_by=-dates&text_format=text`;
+    const resp = await fetch(url, { headers: { "User-Agent": "FTCTV/1.0" } });
+    if (resp.ok) {
+      const data = await resp.json();
+      return { results: data.results ?? [], count: data.count ?? 0 };
+    }
   } catch (e) {
-    console.warn("Afisha fetch failed:", e);
-    return { results: [], count: 0 };
+    console.warn("KudaGo direct failed, trying server proxy:", e);
   }
+
+  // 2) Fallback: try our server proxy
+  try {
+    const url = `${SERVER_API}/events?city=${encodeURIComponent(city)}&page=${page}&page_size=${pageSize}`;
+    const resp = await fetch(url);
+    if (resp.ok) {
+      const data = await resp.json();
+      const results = data.results ?? [];
+      if (results.length > 0) {
+        return { results, count: data.count ?? 0 };
+      }
+    }
+  } catch (e) {
+    console.warn("Server proxy also failed:", e);
+  }
+
+  // 3) Both failed
+  return { results: [], count: 0, notice: "Не удалось загрузить события. Сервис KudaGo временно недоступен." };
 }
 
 /* ─── Page ─── */
