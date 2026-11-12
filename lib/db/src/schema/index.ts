@@ -14,3 +14,4 @@ export * from "./video";
 export * from "./hourly-news";
 export * from "./ticker-cache";
 export * from "./livestreamSource";
+export * from "./afisha";

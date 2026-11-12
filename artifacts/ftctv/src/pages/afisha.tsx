@@ -92,7 +92,6 @@ const CITIES: City[] = [
 ];
 
 /* ─── API endpoints ─── */
-const KUDAGO_API = "https://kudago.com/public-api/v1.4";
 const SERVER_API = "/api/afisha";
 
 /* ─── Helpers ─── */
@@ -110,42 +109,23 @@ function formatEventTime(ts: number): string {
 }
 
 async function fetchAfishaEvents(city: string, page: number, pageSize: number): Promise<{ results: KudaGoEvent[]; count: number; notice?: string }> {
-  const now = Math.floor(Date.now() / 1000);
-
-  // 1) Try KudaGo directly from user's browser
-  try {
-    const url = `${KUDAGO_API}/events/?lang=ru&location=${encodeURIComponent(city)}&actual_since=${now}&page=${page}&page_size=${pageSize}&fields=id,title,description,body_text,dates,images,place,price,site_url,categories,short_title,age_restriction&expand=place&order_by=-dates&text_format=text`;
-    const resp = await fetch(url, { headers: { "User-Agent": "FTCTV/1.0" } });
-    if (resp.ok) {
-      const data = await resp.json();
-      return { results: data.results ?? [], count: data.count ?? 0 };
-    }
-  } catch (e) {
-    console.warn("KudaGo direct failed, trying server proxy:", e);
-  }
-
-  // 2) Fallback: try our server proxy
   try {
     const url = `${SERVER_API}/events?city=${encodeURIComponent(city)}&page=${page}&page_size=${pageSize}`;
     const resp = await fetch(url);
     if (resp.ok) {
       const data = await resp.json();
-      const results = data.results ?? [];
-      if (results.length > 0) {
-        return { results, count: data.count ?? 0 };
-      }
+      return { results: data.results ?? [], count: data.count ?? 0 };
     }
+    return { results: [], count: 0, notice: "Не удалось загрузить события. Сервер временно недоступен." };
   } catch (e) {
-    console.warn("Server proxy also failed:", e);
+    console.warn("Afisha fetch failed:", e);
+    return { results: [], count: 0, notice: "Не удалось загрузить события. Проверьте соединение." };
   }
-
-  // 3) Both failed
-  return { results: [], count: 0, notice: "Не удалось загрузить события. Сервис KudaGo временно недоступен." };
 }
 
 /* ─── Page ─── */
 export default function AfishaPage() {
-  const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem(CITY_STORAGE_KEY) || "khabarovsk");
+  const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem(CITY_STORAGE_KEY) || "kaliningrad");
   const [page, setPage] = useState(1);
   const [citySearch, setCitySearch] = useState("");
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
@@ -317,9 +297,6 @@ export default function AfishaPage() {
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            Данные предоставлены <a href="https://kudago.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">KudaGo</a>
-          </p>
         </>
       ) : null}
     </div>
