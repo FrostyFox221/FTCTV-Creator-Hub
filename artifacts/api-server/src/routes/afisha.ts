@@ -8,6 +8,12 @@ const router = Router();
 
 /* ─── Cities (static list) ─── */
 const CITIES: { slug: string; name: string }[] = [
+  { slug: "kms", name: "Комсомольск-на-Амуре" },
+  { slug: "khabarovsk", name: "Хабаровск" },
+  { slug: "vladivostok", name: "Владивосток" },
+  { slug: "blagoveshchensk", name: "Благовещенск" },
+  { slug: "yuzhno-sakhalinsk", name: "Южно-Сахалинск" },
+  { slug: "yakutsk", name: "Якутск" },
   { slug: "kaliningrad", name: "Калининград" },
   { slug: "spb", name: "Санкт-Петербург" },
   { slug: "msk", name: "Москва" },
@@ -47,7 +53,7 @@ router.get("/afisha/categories", (_req: Request, res: Response) => {
 /* ─── Public: GET /afisha/events?city=kaliningrad&page=1&page_size=20&category= ─── */
 router.get("/afisha/events", async (req: Request, res: Response) => {
   try {
-    const city = (req.query.city as string) || "kaliningrad";
+    const city = (req.query.city as string) || "kms";
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.page_size as string) || 20));
     const category = (req.query.category as string) || "";

@@ -29,6 +29,7 @@ interface KudaGoEvent {
 const CITY_STORAGE_KEY = "ftctv_afisha_city";
 
 const CITIES: City[] = [
+  { slug: "kms", name: "Комсомольск-на-Амуре" },
   { slug: "kaliningrad", name: "Калининград" },
   { slug: "spb", name: "Санкт-Петербург" },
   { slug: "msk", name: "Москва" },
@@ -125,7 +126,7 @@ async function fetchAfishaEvents(city: string, page: number, pageSize: number): 
 
 /* ─── Page ─── */
 export default function AfishaPage() {
-  const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem(CITY_STORAGE_KEY) || "kaliningrad");
+  const [selectedCity, setSelectedCity] = useState<string>(() => localStorage.getItem(CITY_STORAGE_KEY) || "kms");
   const [page, setPage] = useState(1);
   const [citySearch, setCitySearch] = useState("");
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
