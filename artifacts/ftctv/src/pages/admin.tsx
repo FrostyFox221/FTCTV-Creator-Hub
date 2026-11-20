@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload, Edit2, Star, Image, WrenchIcon, CircleDot, FolderOpen, Users, Film, ListVideo, ChevronUp, ChevronDown, X } from "lucide-react";
+import { Plus, Trash2, Settings, Radio, MessageCircle, FileText, Lock, Calendar, Upload, Edit2, Star, Image, WrenchIcon, CircleDot, FolderOpen, Users, Film, ListVideo, ChevronUp, ChevronDown, X, Ticket } from "lucide-react";
 import { useUpload } from "@workspace/object-storage-web/use-upload";
 import logoPath from "/logo.png";
 import RichTextEditor from "@/components/rich-text-editor";
@@ -138,7 +138,8 @@ export default function Admin() {
             { id: "gallery", label: "Галерея", icon: FolderOpen },
             { id: "articles", label: "Статьи", icon: FileText },
             { id: "users", label: "Пользователи", icon: Users },
-            { id: "videos", label: "Видео", icon: Film }
+            { id: "videos", label: "Видео", icon: Film },
+            { id: "afisha", label: "Афиша", icon: Ticket }
           ].map(tab => (
             <TabsTrigger
               key={tab.id}
@@ -164,6 +165,7 @@ export default function Admin() {
           <TabsContent value="articles" className="m-0 p-0"><ArticlesTab /></TabsContent>
           <TabsContent value="users" className="m-0 p-0"><UsersTab /></TabsContent>
           <TabsContent value="videos" className="m-0 p-0"><VideosTab /></TabsContent>
+          <TabsContent value="afisha" className="m-0 p-0"><AfishaTab /></TabsContent>
         </div>
       </Tabs>
     </div>
@@ -2825,6 +2827,313 @@ function VideosTab() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function AfishaTab() {
+  const { fetchWithToken } = useAdminFetch();
+  const { toast } = useToast();
+  const { uploadFile, isUploading, progress } = useUpload();
+
+  const [events, setEvents] = useState<any[]>([]);
+  const [cities, setCities] = useState<{ slug: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ slug: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+
+  const emptyForm = {
+    title: "", description: "", bodyText: "", imageUrl: "",
+    dateStart: "", dateEnd: "", placeName: "", placeAddress: "",
+    citySlug: "kms", category: "", price: "", url: "",
+    isFree: false, ageRestriction: "", isPublished: true,
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const loadEvents = async () => {
+    setLoading(true);
+    try {
+      const qs = filterCity ? `?city=${filterCity}` : "";
+      const data = await fetchWithToken<any[]>(`/api/afisha/admin/events${qs}`);
+      setEvents(Array.isArray(data) ? data : []);
+    } catch { toast({ title: "Ошибка загрузки событий", variant: "destructive" }); }
+    finally { setLoading(false); }
+  };
+
+  const loadMeta = async () => {
+    try {
+      const [c, cat] = await Promise.all([
+        fetch("/api/afisha/cities").then(r => r.json()),
+        fetch("/api/afisha/categories").then(r => r.json()),
+      ]);
+      setCities(c); setCategories(cat);
+    } catch {}
+  };
+
+  useEffect(() => { loadMeta(); }, []);
+  useEffect(() => { loadEvents(); }, [filterCity]);
+
+  const handleUpload = async (files: FileList | null) => {
+    if (!files?.[0]) return;
+    const res = await uploadFile(files[0]);
+    if (res) setForm(prev => ({ ...prev, imageUrl: `/api/storage${res.objectPath}` }));
+  };
+
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
+
+  const fmtLocal = (iso: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const off = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - off * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const openEdit = (ev: any) => {
+    setEditing(ev);
+    setForm({
+      title: ev.title || "",
+      description: ev.description || "",
+      bodyText: ev.bodyText || "",
+      imageUrl: ev.imageUrl || "",
+      dateStart: fmtLocal(ev.dateStart),
+      dateEnd: fmtLocal(ev.dateEnd),
+      placeName: ev.placeName || "",
+      placeAddress: ev.placeAddress || "",
+      citySlug: ev.citySlug || "kms",
+      category: ev.category || "",
+      price: ev.price || "",
+      url: ev.url || "",
+      isFree: ev.isFree || false,
+      ageRestriction: ev.ageRestriction || "",
+      isPublished: ev.isPublished ?? true,
+    });
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.dateStart) {
+      toast({ title: "Заполните название и дату начала", variant: "destructive" }); return;
+    }
+    setSaving(true);
+    try {
+      if (editing) {
+        await fetchWithToken(`/api/afisha/admin/events/${editing.id}`, {
+          method: "PUT", body: JSON.stringify(form),
+        });
+        toast({ title: "Событие обновлено" });
+      } else {
+        await fetchWithToken("/api/afisha/admin/events", {
+          method: "POST", body: JSON.stringify(form),
+        });
+        toast({ title: "Событие создано" });
+      }
+      setShowForm(false); setEditing(null); setForm(emptyForm);
+      await loadEvents();
+    } catch { toast({ title: "Ошибка сохранения", variant: "destructive" }); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Удалить событие?")) return;
+    try {
+      await fetchWithToken(`/api/afisha/admin/events/${id}`, { method: "DELETE" });
+      toast({ title: "Событие удалено" });
+      await loadEvents();
+    } catch { toast({ title: "Ошибка удаления", variant: "destructive" }); }
+  };
+
+  const togglePublish = async (ev: any) => {
+    try {
+      await fetchWithToken(`/api/afisha/admin/events/${ev.id}`, {
+        method: "PUT", body: JSON.stringify({ isPublished: !ev.isPublished }),
+      });
+      toast({ title: ev.isPublished ? "Снято с публикации" : "Опубликовано" });
+      await loadEvents();
+    } catch { toast({ title: "Ошибка", variant: "destructive" }); }
+  };
+
+  const filtered = events.filter(e =>
+    e.title?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const fmtDate = (d: string | null) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const cityName = (slug: string) => cities.find(c => c.slug === slug)?.name || slug;
+  const catName = (slug: string) => categories.find(c => c.slug === slug)?.name || slug;
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h2 className="text-xl font-bold">Управление Афишей</h2>
+        <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Новое событие</Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <Input placeholder="Поиск по названию..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
+        <select value={filterCity} onChange={e => setFilterCity(e.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <option value="">Все города</option>
+          {cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+        </select>
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <div className="border rounded-xl p-6 bg-muted/30 space-y-4">
+          <h3 className="font-semibold text-lg">{editing ? "Редактирование события" : "Новое событие"}</h3>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Название *</label>
+            <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Название события" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Город</label>
+              <select value={form.citySlug} onChange={e => setForm({ ...form, citySlug: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                {cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Категория</label>
+              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Без категории</option>
+                {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Дата начала *</label>
+              <Input type="datetime-local" value={form.dateStart} onChange={e => setForm({ ...form, dateStart: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Дата окончания</label>
+              <Input type="datetime-local" value={form.dateEnd} onChange={e => setForm({ ...form, dateEnd: e.target.value })} />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Краткое описание</label>
+            <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Краткое описание для карточки" />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Подробное описание (body)</label>
+            <Textarea value={form.bodyText} onChange={e => setForm({ ...form, bodyText: e.target.value })} rows={5} className="resize-y font-mono text-sm" placeholder="Полный текст для страницы события" />
+          </div>
+
+          {/* Image */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Изображение</label>
+            <div className="flex items-center gap-3 mt-1">
+              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border text-sm hover:bg-accent transition-colors">
+                <Upload className="w-4 h-4" />
+                {isUploading ? `${progress}%` : "Загрузить"}
+                <input type="file" accept="image/*" className="hidden" onChange={e => handleUpload(e.target.files)} disabled={isUploading} />
+              </label>
+              {form.imageUrl && (
+                <Button variant="ghost" size="sm" onClick={() => setForm({ ...form, imageUrl: "" })}><X className="w-4 h-4 mr-1" />Удалить фото</Button>
+              )}
+            </div>
+            {form.imageUrl && <img src={form.imageUrl} alt="" className="mt-2 rounded-lg max-h-40 object-cover" />}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Место</label>
+              <Input value={form.placeName} onChange={e => setForm({ ...form, placeName: e.target.value })} placeholder="Название площадки" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Адрес</label>
+              <Input value={form.placeAddress} onChange={e => setForm({ ...form, placeAddress: e.target.value })} placeholder="Адрес" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Цена</label>
+              <Input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="от 500 ₽" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Возрастное ограничение</label>
+              <Input value={form.ageRestriction} onChange={e => setForm({ ...form, ageRestriction: e.target.value })} placeholder="12+" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Ссылка (Telegram-пост / сайт)</label>
+              <Input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://t.me/..." />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.isFree} onChange={e => setForm({ ...form, isFree: e.target.checked })} className="rounded" />
+              Бесплатно
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.isPublished} onChange={e => setForm({ ...form, isPublished: e.target.checked })} className="rounded" />
+              Опубликовано
+            </label>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button onClick={handleSave} disabled={saving}>{saving ? "Сохранение..." : editing ? "Сохранить" : "Создать"}</Button>
+            <Button variant="outline" onClick={() => { setShowForm(false); setEditing(null); }}>Отмена</Button>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <p className="text-muted-foreground text-sm py-8 text-center">Загрузка...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-muted-foreground text-sm py-8 text-center">Нет событий</p>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(ev => (
+            <div key={ev.id} className="border rounded-xl p-4 flex gap-4 items-start bg-background">
+              {ev.imageUrl && (
+                <img src={ev.imageUrl} alt="" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-semibold truncate">{ev.title}</h4>
+                  {!ev.isPublished && (
+                    <span className="text-[10px] bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full font-medium">Черновик</span>
+                  )}
+                  {ev.category && (
+                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{catName(ev.category)}</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {cityName(ev.citySlug)} · {fmtDate(ev.dateStart)}{ev.dateEnd ? ` — ${fmtDate(ev.dateEnd)}` : ""}
+                </p>
+                {ev.placeName && <p className="text-xs text-muted-foreground">{ev.placeName}{ev.placeAddress ? `, ${ev.placeAddress}` : ""}</p>}
+                {ev.price && <p className="text-xs mt-0.5">{ev.isFree ? "Бесплатно" : ev.price}</p>}
+                {ev.url && <a href={ev.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline truncate block mt-0.5">{ev.url}</a>}
+              </div>
+              <div className="flex flex-col gap-1 flex-shrink-0">
+                <Button size="sm" variant="outline" onClick={() => openEdit(ev)}><Edit2 className="w-3 h-3 mr-1" />Ред.</Button>
+                <Button size="sm" variant="ghost" onClick={() => togglePublish(ev)}>
+                  {ev.isPublished ? "Скрыть" : "Опубл."}
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(ev.id)}>
+                  <Trash2 className="w-3 h-3 mr-1" />Удалить
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

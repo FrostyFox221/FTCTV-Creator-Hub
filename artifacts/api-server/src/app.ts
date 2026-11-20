@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import path from "path";
 import cors from "cors";
 import compression from "compression";
 import pinoHttp from "pino-http";
@@ -34,6 +35,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(activityLogger);
+// Serve locally cached afisha images
+app.use("/uploads/afisha", express.static(path.resolve(process.cwd(), "uploads/afisha")));
+
 app.use("/api", router);
 
 // Start RSS hourly news fetcher

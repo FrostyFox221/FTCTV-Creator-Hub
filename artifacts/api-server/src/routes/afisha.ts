@@ -114,6 +114,54 @@ router.get("/afisha/events", async (req: Request, res: Response) => {
   }
 });
 
+/* ─── Public: GET /afisha/events/:id — single event detail ─── */
+router.get("/afisha/events/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) {
+      res.status(400).json({ error: "Invalid event ID" });
+      return;
+    }
+    const [event] = await db
+      .select()
+      .from(afishaEventsTable)
+      .where(eq(afishaEventsTable.id, id))
+      .limit(1);
+
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+
+    res.json({
+      id: event.id,
+      title: event.title,
+      description: event.description || "",
+      body_text: event.bodyText || "",
+      images: event.imageUrl ? [{ image: event.imageUrl }] : [],
+      dates: [
+        {
+          start: Math.floor(new Date(event.dateStart).getTime() / 1000),
+          end: event.dateEnd ? Math.floor(new Date(event.dateEnd).getTime() / 1000) : 0,
+        },
+      ],
+      place: event.placeName
+        ? { id: 0, title: event.placeName, address: event.placeAddress || "" }
+        : null,
+      price: event.price || "",
+      categories: event.category ? [event.category] : [],
+      site_url: event.url || "",
+      age_restriction: event.ageRestriction || null,
+      is_free: event.isFree || false,
+      is_published: event.isPublished,
+      city_slug: event.citySlug,
+    });
+  } catch (err) {
+    req.log?.error?.({ err }, "Afisha single event error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 /* ─── Admin: GET /afisha/admin/events — all events including unpublished, past ─── */
 router.get("/afisha/admin/events", requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -166,7 +214,7 @@ router.post("/afisha/admin/events", requireAdmin, async (req: Request, res: Resp
 /* ─── Admin: PUT /afisha/admin/events/:id — update event ─── */
 router.put("/afisha/admin/events/:id", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const body = req.body;
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
@@ -196,7 +244,7 @@ router.put("/afisha/admin/events/:id", requireAdmin, async (req: Request, res: R
 /* ─── Admin: DELETE /afisha/admin/events/:id ─── */
 router.delete("/afisha/admin/events/:id", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     await db.delete(afishaEventsTable).where(eq(afishaEventsTable.id, id));
     res.json({ success: true });
   } catch (err) {

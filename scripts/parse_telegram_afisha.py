@@ -7,6 +7,8 @@ Scrapes public Telegram channels via t.me/s/ and inserts events into afisha_even
 import re
 import sys
 import json
+import hashlib
+import os
 import urllib.request
 import urllib.error
 import mysql.connector
@@ -38,6 +40,44 @@ CATEGORY_KEYWORDS = {
     "kids": ["детям", "детск", "ребят", "мультфильм", "сказк"],
     "festival": ["фестивал", "праздни", "ярмарк"],
 }
+
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "uploads", "afisha")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def download_image(url):
+    """Download image from URL, save locally, return local path or None."""
+    if not url:
+        return None
+    try:
+        url_hash = hashlib.md5(url.encode()).hexdigest()
+        # Determine extension
+        ext = ".jpg"
+        if ".png" in url.lower():
+            ext = ".png"
+        elif ".webp" in url.lower():
+            ext = ".webp"
+        filename = f"{url_hash}{ext}"
+        filepath = os.path.join(UPLOAD_DIR, filename)
+
+        # Skip if already downloaded
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            return f"/uploads/afisha/{filename}"
+
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+        })
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = resp.read()
+            if len(data) < 500:
+                return None
+            with open(filepath, "wb") as f:
+                f.write(data)
+        print(f"    [IMG] Saved {filename} ({len(data)} bytes)")
+        return f"/uploads/afisha/{filename}"
+    except Exception as e:
+        print(f"    [IMG WARN] Failed to download {url[:80]}: {e}")
+        return None
 
 
 def fetch_channel(username):
@@ -97,10 +137,20 @@ def parse_date_from_hashtags(text, post_date):
 
 
 def parse_time(text):
-    """Extract time from 🕓 marker or text."""
+    """Extract time from 🕓 marker, text patterns or bare time."""
+    # 1. 🕓 marker
     m = re.search(r"🕓\s*(\d{1,2})[:\.](\d{2})", text)
     if m:
         return int(m.group(1)), int(m.group(2))
+
+    # 2. Text patterns: Начало в, Когда:, Время:, Во сколько:
+    m = re.search(r"(?:Начало\s+в|Когда\s*[:—–-]|Время\s*[:—–-]|Во сколько\s*[:—–-]|В\s)?\s*(\d{1,2})[:\.](\d{2})", text, re.IGNORECASE)
+    if m:
+        h = int(m.group(1))
+        if 6 <= h <= 23:
+            return h, int(m.group(2))
+
+    # 3. Bare HH:MM
     m = re.search(r"(\d{1,2}):(\d{2})", text)
     if m:
         h = int(m.group(1))
@@ -110,28 +160,78 @@ def parse_time(text):
 
 
 def parse_place(text):
-    """Extract place from 📍 marker."""
+    """Extract place from 📍 marker or text patterns like Где:, Место:."""
+    raw = None
+
+    # 1. Try 📍 marker
     m = re.search(r"📍\s*(.+?)(?:\n|💰|🕓|#|Подписывайся|$)", text, re.DOTALL)
     if m:
-        place = strip_html(m.group(1)).strip().strip("«»\"").strip()
-        # Split into name and address if possible
-        parts = re.split(r"\s*\(", place, maxsplit=1)
+        raw = m.group(1).strip()
+
+    # 2. Try text patterns: Где:, Место:, Площадка:, Адрес:
+    if not raw:
+        m = re.search(r"(?:Где|Место|Площадка|Локация|Адрес)\s*[:—–-]\s*(.+?)(?:\n|💰|🕓|📅|🗓|#|Подписывайся|Когда|Стоимость|Цена|Вход|$)", text, re.IGNORECASE | re.DOTALL)
+        if m:
+            raw = m.group(1).strip()
+
+    if not raw:
+        return None, None
+
+    place = strip_html(raw).strip()
+    # Clean truncated/mismatched quotes
+    place = re.sub(r'^[«»"„"\s]+|[«»"„"\s]+$', '', place).strip()
+    # Strip leftover field prefixes (e.g. "ГДЕ: Драмтеатр" → "Драмтеатр")
+    place = re.sub(r'^(?:Где|Место|Площадка|Локация|Адрес)\s*[:—–-]\s*', '', place, flags=re.IGNORECASE).strip()
+    if not place:
+        return None, None
+
+    # Split into name and address
+    # Pattern: "Name (address)" or "Name, ул. Address"
+    parts = re.split(r"\s*\(", place, maxsplit=1)
+    if len(parts) > 1:
         name = parts[0].strip()
-        addr = parts[1].rstrip(")").strip() if len(parts) > 1 else None
-        return name[:300], addr[:500] if addr else None
-    return None, None
+        addr = parts[1].rstrip(")").strip()
+        if name:
+            return name[:300], addr[:500] if addr else None
+
+    # Try comma-separated: "Name, ул. Ленина 10"
+    addr_m = re.search(r",\s*((?:ул\.|пр\.|пер\.|наб\.|б-р|бульвар|просп|пл\.|проспект|улица)\.?\s*.+)$", place, re.IGNORECASE)
+    if addr_m:
+        name = place[:addr_m.start()].strip()
+        addr = addr_m.group(1).strip()
+        if name:
+            return name[:300], addr[:500]
+
+    return place[:300], None
 
 
 def parse_price(text):
-    """Extract price from 💰 marker."""
+    """Extract price from 💰 marker or text patterns like Стоимость:, Цена:, Вход:."""
+    # 1. Try 💰 marker
     m = re.search(r"💰\s*(.+?)(?:\n|#|Подписывайся|📱|$)", text, re.DOTALL)
     if m:
         price = strip_html(m.group(1)).strip()
-        return price[:200]
-    # Also look for "xxx ₽"
-    m = re.search(r"(\d[\d\s]*₽[^#\n]*)", text)
+        if price:
+            return price[:200]
+
+    # 2. Try text patterns
+    m = re.search(r"(?:Стоимость|Цена|Вход|Билет[ыь]?)\s*[:—–-]\s*(.+?)(?:\n|#|Подписывайся|📱|Где|Место|$)", text, re.IGNORECASE | re.DOTALL)
+    if m:
+        price = strip_html(m.group(1)).strip()
+        # Remove trailing URLs/links
+        price = re.sub(r"https?://\S+", "", price).strip()
+        if price:
+            return price[:200]
+
+    # 3. Look for "бесплатно" / "вход свободный"
+    if re.search(r"бесплатно|вход свободный|free", text, re.IGNORECASE):
+        return "Бесплатно"
+
+    # 4. Look for "xxx ₽" or "xxx руб"
+    m = re.search(r"(\d[\d\s]*(?:₽|руб[^\w])[^#\n]*)", text)
     if m:
         return strip_html(m.group(1)).strip()[:200]
+
     return None
 
 
@@ -154,26 +254,42 @@ def detect_category(text):
 def extract_title(text):
     """Extract a meaningful title from event text."""
     clean = strip_html(text)
-    # Try to find quoted title: «Title» or "Title"
+
+    # 1. Try bold text first (<b>Title</b>)
+    bold_m = re.search(r"<b>(.*?)</b>", text)
+    if bold_m:
+        bold_text = strip_html(bold_m.group(1)).strip()
+        if 3 < len(bold_text) < 200:
+            return bold_text[:500]
+
+    # 2. Try quoted title: «Title» or "Title"
     m = re.search(r"[«\"](.*?)[»\"]", clean)
     if m:
         title_part = m.group(1).strip()
         # Also look for prefix like "Спектакль «Title»"
-        prefix_m = re.search(r"((?:Спектакль|Концерт|Выставка|Фестиваль|Мастер-класс|Встреча|Вечеринка|Шоу|Лекция|Квиз)\s+[«\"]" + re.escape(title_part) + r"[»\"])", clean)
+        event_types = r"Спектакль|Концерт|Выставка|Фестиваль|Мастер-класс|Встреча|Вечеринка|Шоу|Лекция|Квиз|Форум|Мюзикл|Опера|Балет|Экскурсия|Кинопоказ|Премьера"
+        prefix_m = re.search(r"((?:" + event_types + r")\s+[«\"]" + re.escape(title_part) + r"[»\"])", clean)
         if prefix_m:
             return prefix_m.group(1).strip()[:500]
         return title_part[:500]
 
-    # Fallback: first meaningful line after date/time markers
+    # 3. Try line starting with event-type keyword
     lines = [l.strip() for l in clean.split("\n") if l.strip()]
+    event_kw = re.compile(r"^(Спектакль|Концерт|Выставка|Фестиваль|Мастер-класс|Встреча|Вечеринка|Шоу|Лекция|Квиз|Форум|Экскурсия|Кинопоказ|Премьера)\b", re.I)
     for line in lines:
-        # Skip lines that are just date/time/place markers
-        if re.match(r"^(🗓️|🕓|📍|💰|📱|#|Подписывайся)", line):
-            continue
-        if len(line) > 10 and not line.startswith("http"):
+        if event_kw.match(line) and len(line) < 200:
             return line[:500]
 
-    return clean[:100] if clean else "Событие"
+    # 4. Fallback: first short title-like line (10-150 chars), skip markers
+    skip_re = re.compile(r"^(🗓️|🕓|📍|💰|📱|🎫|🔞|#|Подписывайся|http|Билеты|Цена|Стоимость|Вход|Начало|Место|Адрес|Где:)", re.I)
+    for line in lines:
+        if skip_re.match(line):
+            continue
+        if 5 < len(line) < 150 and not line.startswith("http"):
+            return line[:500]
+
+    # 5. Last resort: first 100 chars
+    return clean[:100].strip() if clean else "Событие"
 
 
 def parse_channel_posts(html, channel_username, city_slug):
@@ -213,8 +329,48 @@ def parse_channel_posts(html, channel_username, city_slug):
         # Skip ads and non-event posts
         if len(clean_text) < 30:
             continue
-        if any(skip in clean_text.lower() for skip in ["реклама", "подпишись", "розыгрыш", "doma-dv", "строительная компания", "ипотеку", "каталог"]):
+
+        lower_text = clean_text.lower()
+
+        # Hard ad markers — always skip
+        ad_hard = [
+            "реклама", "рекламн", "#реклама", "#ad", "партнёрский материал",
+            "партнерский материал", "erid:", "erid :", "токен:", "оплаченная публикация",
+        ]
+        if any(kw in lower_text for kw in ad_hard):
             continue
+
+        # Soft ad markers — skip if 2+ match (likely promo, not event)
+        ad_soft = [
+            "подпишись", "розыгрыш", "разыгрыва", "конкурс репост",
+            "doma-dv", "строительная компания", "ипотек", "каталог",
+            "скидк", "промокод", "promo", "акция действует",
+            "закажи", "доставк", "оформи заявку", "оставь заявку",
+            "успей купить", "только сегодня", "переходи по ссылке",
+            "жми на кнопку", "регистрируйся по", "забронируй",
+            "установи приложение", "скачай приложение",
+            "кредит", "займ", "вклад под", "инвестиц",
+            "казино", "ставки на спорт", "1xbet", "1хбет",
+            "похудеть", "заработок", "пассивный доход",
+            "бесплатный вебинар по заработку", "криптовалют",
+            "продаётся", "продается", "сдаётся", "сдается",
+            "аренда квартир", "купить квартир",
+        ]
+        soft_count = sum(1 for kw in ad_soft if kw in lower_text)
+        if soft_count >= 2:
+            continue
+
+        # Skip pure reposts / forwards without event content
+        if not any(sig in lower_text for sig in [
+            "концерт", "спектакль", "выставк", "фестивал", "мастер-класс",
+            "лекция", "квиз", "кино", "экскурс", "матч", "турнир",
+            "встреча", "вечеринк", "шоу", "премьер", "открыти",
+            "📍", "💰", "🕓", "🗓", "когда", "где:", "место:", "вход",
+            "стоимость", "цена", "билет", "начало в",
+        ]):
+            # No event signals at all — likely not an event
+            if soft_count >= 1:
+                continue
 
         # Extract post datetime
         time_m = re.search(r'<time[^>]*datetime="([^"]*)"', block)
@@ -235,9 +391,28 @@ def parse_channel_posts(html, channel_username, city_slug):
         category = detect_category(clean_text)
         is_free = 1 if price and ("бесплатно" in price.lower() or "вход свободный" in price.lower()) else 0
 
-        # Build description (clean text without hashtags)
+        # Build description — remove structural markers, hashtags, promo tails
         description = re.sub(r"#\S+", "", clean_text).strip()
         description = re.sub(r"Подписывайся.*$", "", description, flags=re.DOTALL).strip()
+        # Remove lines that are just field markers (already extracted into separate fields)
+        desc_lines = []
+        skip_patterns = re.compile(
+            r"^\s*(?:📍|💰|🕓|🗓️?|📱|🎫|🔞)\s*",
+        )
+        field_patterns = re.compile(
+            r"^\s*(?:Где|Место|Площадка|Локация|Адрес|Когда|Дата|Время|Начало|Стоимость|Цена|Вход|Билет[ыь]?|Во сколько)\s*[:—–-]",
+            re.IGNORECASE
+        )
+        for line in description.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if skip_patterns.match(stripped):
+                continue
+            if field_patterns.match(stripped):
+                continue
+            desc_lines.append(stripped)
+        description = "\n".join(desc_lines).strip()
 
         source_id = f"tg:{post_id}"
         event_url = f"https://t.me/{post_id}"
@@ -246,7 +421,7 @@ def parse_channel_posts(html, channel_username, city_slug):
             "title": title,
             "description": description[:2000],
             "body_text": description[:5000],
-            "image_url": image_url,
+            "image_url": download_image(image_url),
             "date_start": event_date,
             "place_name": place_name,
             "place_address": place_addr,
@@ -284,8 +459,15 @@ def save_events(events, db):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                     title=VALUES(title), description=VALUES(description),
-                    image_url=VALUES(image_url), date_start=VALUES(date_start),
-                    place_name=VALUES(place_name), price=VALUES(price),
+                    body_text=VALUES(body_text),
+                    image_url=COALESCE(VALUES(image_url), image_url),
+                    date_start=VALUES(date_start),
+                    place_name=COALESCE(VALUES(place_name), place_name),
+                    place_address=COALESCE(VALUES(place_address), place_address),
+                    price=COALESCE(VALUES(price), price),
+                    category=VALUES(category),
+                    is_free=VALUES(is_free),
+                    age_restriction=COALESCE(VALUES(age_restriction), age_restriction),
                     updated_at=CURRENT_TIMESTAMP
             """, (
                 ev["title"], ev["description"], ev["body_text"], ev["image_url"],

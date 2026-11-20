@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Calendar, Clock, Tag, ExternalLink, ChevronDown, Ticket, Search, AlertCircle } from "lucide-react";
+import { Link } from "wouter";
 
 /* ─── Types ─── */
 interface City {
@@ -313,21 +314,18 @@ function EventCard({ event }: { event: KudaGoEvent }) {
   const dateStr = startDate ? formatEventDate(startDate) : "";
   const endDateStr = endDate && endDate !== startDate ? formatEventDate(endDate) : "";
   const desc = event.description || "";
+  const hasLink = !!event.site_url;
 
   return (
-    <a
-      href={event.site_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300 flex flex-col"
-    >
+    <div className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300 flex flex-col">
+      <Link to={`/afisha/${event.id}`} className="flex-1 flex flex-col no-underline text-inherit cursor-pointer">
       {/* Image */}
       <div className="relative aspect-[16/10] bg-secondary overflow-hidden">
         {img ? (
           <img
             src={img}
             alt={event.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover"
             loading="lazy"
             onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
@@ -365,43 +363,53 @@ function EventCard({ event }: { event: KudaGoEvent }) {
 
       {/* Content */}
       <div className="p-4 flex-1 flex flex-col gap-2">
-        <h3 className="text-sm font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+        <h3 className="text-base font-bold leading-snug">
           {event.title}
         </h3>
 
         {desc && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{desc}</p>
+          <p className="text-xs text-muted-foreground line-clamp-4 leading-relaxed whitespace-pre-line">{desc}</p>
         )}
 
-        <div className="mt-auto pt-2 flex flex-col gap-1.5 text-xs text-muted-foreground">
+        <div className="mt-auto pt-3 flex flex-col gap-1.5 text-xs text-muted-foreground">
           {dateStr && (
             <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
-              {dateStr}{endDateStr ? ` — ${endDateStr}` : ""}{time ? `, ${time}` : ""}
+              <Calendar className="w-3.5 h-3.5 shrink-0 text-primary/70" />
+              <span>{dateStr}{endDateStr ? ` — ${endDateStr}` : ""}{time ? `, ${time}` : ""}</span>
             </span>
           )}
 
           {event.place && (
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="line-clamp-1">{event.place.title}{event.place.address ? `, ${event.place.address}` : ""}</span>
+            <span className="flex items-start gap-1.5">
+              <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" />
+              <span>{event.place.title}{event.place.address ? ` — ${event.place.address}` : ""}</span>
             </span>
           )}
 
           {event.price && !event.is_free && (
             <span className="flex items-center gap-1.5">
-              <Ticket className="w-3.5 h-3.5 shrink-0" />
-              <span className="line-clamp-1">{event.price}</span>
+              <Ticket className="w-3.5 h-3.5 shrink-0 text-primary/70" />
+              <span>{event.price}</span>
             </span>
           )}
         </div>
       </div>
+      </Link>
 
-      {/* Footer link */}
-      <div className="px-4 py-2.5 border-t border-border flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Подробнее</span>
-        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-      </div>
-    </a>
+      {/* Footer: optional Telegram link */}
+      {hasLink && (
+        <div className="px-4 py-2.5 border-t border-border">
+          <a
+            href={event.site_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Открыть в Telegram
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
