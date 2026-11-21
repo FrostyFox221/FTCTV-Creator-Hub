@@ -83877,6 +83877,44 @@ router24.get("/afisha/events", async (req, res) => {
     res.status(500).json({ results: [], count: 0, error: "Internal server error" });
   }
 });
+router24.get("/afisha/events/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ error: "Invalid event ID" });
+      return;
+    }
+    const [event] = await db.select().from(afishaEventsTable).where(eq(afishaEventsTable.id, id)).limit(1);
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    res.json({
+      id: event.id,
+      title: event.title,
+      description: event.description || "",
+      body_text: event.bodyText || "",
+      images: event.imageUrl ? [{ image: event.imageUrl }] : [],
+      dates: [
+        {
+          start: Math.floor(new Date(event.dateStart).getTime() / 1e3),
+          end: event.dateEnd ? Math.floor(new Date(event.dateEnd).getTime() / 1e3) : 0
+        }
+      ],
+      place: event.placeName ? { id: 0, title: event.placeName, address: event.placeAddress || "" } : null,
+      price: event.price || "",
+      categories: event.category ? [event.category] : [],
+      site_url: event.url || "",
+      age_restriction: event.ageRestriction || null,
+      is_free: event.isFree || false,
+      is_published: event.isPublished,
+      city_slug: event.citySlug
+    });
+  } catch (err) {
+    req.log?.error?.({ err }, "Afisha single event error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 router24.get("/afisha/admin/events", requireAdmin, async (req, res) => {
   try {
     const city = req.query.city || "";

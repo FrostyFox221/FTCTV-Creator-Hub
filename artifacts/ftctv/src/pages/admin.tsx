@@ -125,7 +125,7 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="posts" className="w-full">
-        <TabsList className="mb-8 w-full justify-start overflow-x-auto bg-transparent h-auto p-0 gap-2 border-b rounded-none pb-px no-scrollbar">
+        <TabsList className="mb-8 w-full justify-start flex-wrap bg-transparent h-auto p-0 gap-1 border-b rounded-none pb-px">
           {[
             { id: "posts", label: "Новости", icon: FileText },
             { id: "banners", label: "Реклама", icon: Image },
@@ -144,7 +144,7 @@ export default function Admin() {
             <TabsTrigger
               key={tab.id}
               value={tab.id}
-              className="rounded-t-xl rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-card px-6 py-3.5 uppercase tracking-wider text-xs font-bold flex items-center gap-2 text-muted-foreground data-[state=active]:text-foreground transition-colors"
+              className="rounded-t-xl rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-card px-3 py-2.5 uppercase tracking-wider text-[11px] font-bold flex items-center gap-1.5 text-muted-foreground data-[state=active]:text-foreground transition-colors whitespace-nowrap"
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
